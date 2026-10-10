@@ -310,9 +310,9 @@ Patchwise/
 | **Milestone 3** | Deterministic Rule Engine & Python Analyzer (`PY001`–`PY005`) | **COMPLETE** | 19 rule & parser tests |
 | **Milestone 4** | AI Review Provider, Guardrails & Composite Orchestrator | **COMPLETE** | 29 provider & security tests |
 | **Milestone 5** | Benchmark Evaluation Runner (`v1.0.0` Dataset, Metrics, Reporting) | **COMPLETE** | 26 benchmark & metric tests |
-| **Backend Stabilization** | AST line mapping fix, hunk consistency, CORS security, resource limits | **COMPLETE** | 122 backend tests passing (100%) |
-| **Milestone 6** | Next.js Frontend Dashboard (Overview, PR Review, Evaluation, Settings) | **PLANNED** | Scheduled next |
-| **Milestone 7** | Multi-Language Plugin Expansion (TS/JS, Java, C/C++, SQL, PySpark/Scala) | **PLANNED** | After Milestone 6 frontend |
+| **Backend Stabilization** | AST line mapping fix, hunk consistency, CORS security, resource limits | **COMPLETE** | 122 backend tests (Stabilization baseline) |
+| **Milestone 6** | Next.js Frontend Dashboard (Overview, PR Review, Evaluation, Settings) | **COMPLETE** | 8 frontend tests (Node runner); 125 backend tests total |
+| **Milestone 7** | Multi-Language Plugin Expansion (TS/JS, Java, C/C++, SQL, PySpark/Scala) | **PLANNED** | After Milestone 6 frontend approval |
 | **Milestone 8** | System Hardening, E2E Integration & Demo Packaging | **PLANNED** | Final release milestone |
 
 ---
@@ -410,6 +410,11 @@ cd services/api
 .\.venv\Scripts\pytest.exe -v
 ```
 **Current Test Status:** `125 passed in 0.84s` (100% pass rate).
+
+> [!NOTE]
+> **Test Count Reconciliation (122 vs 125):**
+> - **122 Tests (Milestones 0–5 & Stabilization Baseline):** The backend test suite reached 122 passing tests at the conclusion of the stabilization audit.
+> - **125 Tests (Milestone 6 Total):** During Milestone 6 frontend API integration, 3 new integration tests were added in `services/api/tests/test_reviews_api.py` (`test_list_recent_reviews_endpoint`, `test_get_latest_benchmark_summary_endpoint`, and `test_submit_finding_feedback_flow`). All 125 tests pass in 0.84s with 0 regressions.
 
 ### 7.3 Run the Deterministic Benchmark
 
