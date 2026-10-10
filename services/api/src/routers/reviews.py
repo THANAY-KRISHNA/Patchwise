@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..analyzer.orchestrator import AnalysisOrchestrator
 from ..core.errors import ErrorCode, PatchwiseAPIException
 from ..db.models import Feedback, Finding, Review
-from ..db.session import AsyncSessionLocal, get_db
+from ..db.session import get_db
 from ..github.client import GitHubClient, parse_github_repo_and_number
 from ..parser.diff_parser import parse_single_file_patch
 from ..parser.models import ParsedFileDiff
@@ -24,22 +24,6 @@ from ..schemas.findings import (
 from ..schemas.reviews import ReviewRead, ReviewStatus, ReviewSubmissionRequest, ReviewSummary
 
 router = APIRouter(prefix="/reviews", tags=["Reviews & Diffs"])
-
-
-async def get_db_safe() -> AsyncGenerator[Optional[AsyncSession], None]:
-    """Provides DB session or yields None if database is unreachable."""
-    try:
-        async with AsyncSessionLocal() as session:
-            try:
-                yield session
-                await session.commit()
-            except Exception:
-                await session.rollback()
-                raise
-            finally:
-                await session.close()
-    except Exception:
-        yield None
 
 
 class DiffInspectionResponse(BaseModel):
@@ -79,11 +63,9 @@ async def create_pull_request_review(
 async def list_recent_reviews(
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    db: Optional[AsyncSession] = Depends(get_db_safe),
+    db: AsyncSession = Depends(get_db),
 ):
     """Fetch recent review history for dashboard."""
-    if db is None:
-        return []
     try:
         query = select(Review).order_by(Review.started_at.desc()).offset(offset).limit(limit)
         result = await db.execute(query)
@@ -140,15 +122,9 @@ async def list_recent_reviews(
 @router.get("/{review_id}", response_model=ReviewRead)
 async def get_review_by_id(
     review_id: uuid.UUID,
-    db: Optional[AsyncSession] = Depends(get_db_safe),
+    db: AsyncSession = Depends(get_db),
 ):
     """Fetch review metadata and summary by ID."""
-    if db is None:
-        raise PatchwiseAPIException(
-            status_code=503,
-            error_code=ErrorCode.DATABASE_ERROR,
-            message="Database service temporarily unavailable.",
-        )
     try:
         query = select(Review).where(Review.id == review_id)
         result = await db.execute(query)
