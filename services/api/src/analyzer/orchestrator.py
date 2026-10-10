@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..core.config import settings
+from ..core.errors import ErrorCode, PatchwiseAPIException
 from ..db.models import Finding, Review
 from ..github.client import GitHubClient, parse_github_repo_and_number
 from ..parser.diff_parser import parse_single_file_patch
@@ -73,6 +74,19 @@ class AnalysisOrchestrator:
         pr_metadata = await self.github_client.get_pull_request(owner, repo, pr_number)
         changed_files = await self.github_client.get_pull_request_files(owner, repo, pr_number)
 
+        # Enforce MAX_FILES_PER_REVIEW limit before processing
+        if len(changed_files) > settings.MAX_FILES_PER_REVIEW:
+            review_model.status = ReviewStatus.FAILED.value
+            review_model.error_code = ErrorCode.PATCH_TOO_LARGE.value
+            review_model.completed_at = datetime.now(timezone.utc)
+            await self.db.commit()
+            raise PatchwiseAPIException(
+                status_code=400,
+                error_code=ErrorCode.PATCH_TOO_LARGE,
+                message=f"Diff file count ({len(changed_files)}) exceeds allowed limit ({settings.MAX_FILES_PER_REVIEW}).",
+                details={"file_count": len(changed_files), "limit": settings.MAX_FILES_PER_REVIEW},
+            )
+
         review_model.pr_title = pr_metadata.title
         review_model.commit_sha = pr_metadata.head_commit_sha
         review_model.status = ReviewStatus.ANALYZING.value
@@ -90,6 +104,19 @@ class AnalysisOrchestrator:
             )
             parsed_files.append(parsed_f)
             total_chars += parsed_f.patch_chars
+
+        # Enforce MAX_PATCH_CHARS limit before analysis or LLM submission
+        if total_chars > settings.MAX_PATCH_CHARS:
+            review_model.status = ReviewStatus.FAILED.value
+            review_model.error_code = ErrorCode.PATCH_TOO_LARGE.value
+            review_model.completed_at = datetime.now(timezone.utc)
+            await self.db.commit()
+            raise PatchwiseAPIException(
+                status_code=400,
+                error_code=ErrorCode.PATCH_TOO_LARGE,
+                message=f"Diff total characters ({total_chars}) exceeds allowed limit ({settings.MAX_PATCH_CHARS}).",
+                details={"total_chars": total_chars, "limit": settings.MAX_PATCH_CHARS},
+            )
 
         parsed_diff = ParsedDiffResult(
             files=parsed_files,

@@ -54,6 +54,7 @@ class CaseOutcome(BaseModel):
     fp: int = 0
     fn: int = 0
     tn: int = 0
+    case_fp: int = 0
     latency_ms: float = 0.0
     expected_count: int = 0
     actual_count: int = 0
@@ -83,6 +84,7 @@ class AggregateMetrics(BaseModel):
     fp: int = 0
     fn: int = 0
     tn: int = 0
+    fp_cases: int = 0
     precision: Optional[float] = None
     recall: Optional[float] = None
     f1: Optional[float] = None

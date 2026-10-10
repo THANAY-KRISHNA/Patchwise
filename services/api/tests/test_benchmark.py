@@ -17,6 +17,7 @@ from src.benchmark.dataset import (
     get_default_benchmark_dataset,
     load_benchmark_dataset,
 )
+from src.parser.diff_parser import parse_single_file_patch
 from src.benchmark.metrics import (
     calculate_f1,
     calculate_false_positive_rate,
@@ -300,6 +301,28 @@ class TestDatasetLoading:
                     assert exp.rule_id in {"PY001", "PY002", "PY003", "PY004", "PY005"}
                     assert exp.description is not None and len(exp.description) > 0
 
+    def test_dataset_hunk_count_consistency(self):
+        """All non-edge fixtures must contain valid unified diffs where hunk header counts match line counts."""
+        dataset = get_default_benchmark_dataset()
+        for case in dataset.cases:
+            if case.id in ("edge_empty_diff", "edge_binary_file_diff"):
+                # Explicit edge cases
+                continue
+
+            file_diff = parse_single_file_patch(case.diff_patch, filename=case.target_file)
+            assert len(file_diff.hunks) >= 1, f"Fixture {case.id} had no hunks"
+            for hunk in file_diff.hunks:
+                actual_new = len([l for l in hunk.lines if l.type in (" ", "+")])
+                actual_old = len([l for l in hunk.lines if l.type in (" ", "-")])
+                assert hunk.new_length == actual_new, (
+                    f"Fixture {case.id} hunk header declared +count={hunk.new_length} "
+                    f"but actual new lines={actual_new}"
+                )
+                assert hunk.old_length == actual_old, (
+                    f"Fixture {case.id} hunk header declared -count={hunk.old_length} "
+                    f"but actual old lines={actual_old}"
+                )
+
 
 # -------------------------------------------------------------------------
 # 4. Benchmark Runner Execution and Reproducibility
@@ -331,11 +354,15 @@ class TestBenchmarkRunner:
         assert m.fn == 0
         # 10 negative/edge-case fixtures producing 0 findings = 10 True Negatives
         assert m.tn == 10
+        assert m.fp_cases == 0
 
         assert m.precision == 1.0
         assert m.recall == 1.0
         assert m.f1 == 1.0
         assert m.false_positive_rate == 0.0
+
+        for outcome in summary.case_outcomes:
+            assert outcome.case_fp == 0
 
         # Latency must be non-zero and recorded
         assert m.total_latency_ms > 0

@@ -21,7 +21,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py001_missing_validation_positive",
             name="PY001: Unchecked external payload dictionary key access",
             description="Direct dictionary key access on 'payload' without prior verification raises unhandled KeyError.",
-            diff_patch="""@@ -10,3 +10,5 @@ def handle_request(payload):
+            diff_patch="""@@ -10,1 +10,3 @@ def handle_request(payload):
+ def handle_request(payload):
 +    user_id = payload["user_id"]
 +    return user_id
 """,
@@ -43,7 +44,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py002_bare_except_positive",
             name="PY002: Bare except clause",
             description="Bare 'except:' intercepts all interpreter signals and hides bugs.",
-            diff_patch="""@@ -15,3 +15,6 @@ def run_job():
+            diff_patch="""@@ -15,1 +15,5 @@ def run_job():
+ def run_job():
 +    try:
 +        do_work()
 +    except:
@@ -67,7 +69,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py002_base_exception_positive",
             name="PY002: Catching BaseException explicitly",
             description="Explicitly catching BaseException suppresses KeyboardInterrupt and SystemExit.",
-            diff_patch="""@@ -5,3 +5,6 @@ def execute():
+            diff_patch="""@@ -5,1 +5,5 @@ def execute():
+ def execute():
 +    try:
 +        step()
 +    except BaseException:
@@ -91,7 +94,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py002_silent_pass_positive",
             name="PY002: Silent exception suppression with pass",
             description="Silently discarding exceptions with bare pass conceals failures from monitoring.",
-            diff_patch="""@@ -20,3 +20,6 @@ def safe_call():
+            diff_patch="""@@ -20,1 +20,5 @@ def safe_call():
+ def safe_call():
 +    try:
 +        call()
 +    except Exception:
@@ -115,7 +119,7 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py003_mutable_list_default_positive",
             name="PY003: Mutable list default parameter",
             description="Default parameter items=[] is shared across all function calls.",
-            diff_patch="""@@ -1,3 +1,5 @@
+            diff_patch="""@@ -0,0 +1,3 @@
 +def append_to_list(val, items=[]):
 +    items.append(val)
 +    return items
@@ -138,7 +142,7 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py003_mutable_dict_default_positive",
             name="PY003: Mutable dictionary default parameter",
             description="Default parameter settings={} creates shared state across invocations.",
-            diff_patch="""@@ -1,3 +1,5 @@
+            diff_patch="""@@ -0,0 +1,2 @@
 +def configure(settings={}):
 +    return settings
 """,
@@ -160,7 +164,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py004_eval_positive",
             name="PY004: Insecure dynamic execution with eval()",
             description="Calling eval() on dynamic expressions enables remote code execution.",
-            diff_patch="""@@ -8,3 +8,5 @@ def compute(expression):
+            diff_patch="""@@ -8,1 +8,3 @@ def compute(expression):
+ def compute(expression):
 +    result = eval(expression)
 +    return result
 """,
@@ -182,7 +187,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py004_pickle_positive",
             name="PY004: Insecure deserialization via pickle.loads()",
             description="Deserializing untrusted pickle streams triggers code execution via __reduce__.",
-            diff_patch="""@@ -12,3 +12,5 @@ def restore(data):
+            diff_patch="""@@ -12,1 +12,3 @@ def restore(data):
+ def restore(data):
 +    obj = pickle.loads(data)
 +    return obj
 """,
@@ -204,8 +210,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py004_sql_injection_positive",
             name="PY004: SQL injection via f-string query formatting",
             description="Interpolating variables directly into execute() query strings causes SQL injection.",
-            diff_patch="""@@ -25,3 +25,5 @@
-+def find_user(db, user_id):
+            diff_patch="""@@ -25,1 +25,2 @@ def find_user(db, user_id):
+ def find_user(db, user_id):
 +    return db.execute(f"SELECT * FROM users WHERE id = '{user_id}'")
 """,
             target_file="src/repository.py",
@@ -226,7 +232,7 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="py005_missing_tests_heuristic_positive",
             name="PY005: Missing unit test recommendation",
             description="Recommends tests when business logic is modified without test file changes.",
-            diff_patch="""@@ -5,3 +5,5 @@
+            diff_patch="""@@ -5,0 +5,3 @@
 +def calculate_price(base, rate):
 +    discount = 0.1
 +    return base * rate * (1 - discount)
@@ -254,7 +260,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="clean_safe_dict_get_negative",
             name="Clean: Safe dictionary access via .get()",
             description="Using .get() with default handles missing keys without throwing KeyError.",
-            diff_patch="""@@ -10,3 +10,5 @@ def handle_request(payload):
+            diff_patch="""@@ -10,1 +10,3 @@ def handle_request(payload):
+ def handle_request(payload):
 +    user_id = payload.get("user_id", "guest")
 +    return user_id
 """,
@@ -268,7 +275,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="clean_specific_exception_negative",
             name="Clean: Catching specific exceptions and logging",
             description="Catches specific application exceptions and logs the error properly.",
-            diff_patch="""@@ -15,3 +15,6 @@ def run_job():
+            diff_patch="""@@ -15,1 +15,5 @@ def run_job():
+ def run_job():
 +    try:
 +        do_work()
 +    except ValueError as exc:
@@ -284,7 +292,7 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="clean_immutable_default_negative",
             name="Clean: Safe None default with body initialization",
             description="Idiomatic Python default parameter handling using None.",
-            diff_patch="""@@ -1,3 +1,7 @@
+            diff_patch="""@@ -0,0 +1,5 @@
 +def append_to_list(val, items=None):
 +    if items is None:
 +        items = []
@@ -301,7 +309,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="clean_parameterized_sql_negative",
             name="Clean: Parameterized SQL statement with driver bindings",
             description="Uses parameterized query bindings to prevent SQL injection.",
-            diff_patch="""@@ -25,3 +25,4 @@ def find_user(db, user_id):
+            diff_patch="""@@ -25,1 +25,2 @@ def find_user(db, user_id):
+ def find_user(db, user_id):
 +    return db.execute("SELECT * FROM users WHERE id = :user_id", {"user_id": user_id})
 """,
             target_file="src/repository.py",
@@ -314,7 +323,8 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="clean_business_logic_with_tests_negative",
             name="Clean: Business logic modification accompanied by unit tests",
             description="PR includes both business logic updates and tests, so PY005 does not trigger.",
-            diff_patch="""@@ -5,3 +5,5 @@ def calculate_price(base, rate):
+            diff_patch="""@@ -5,1 +5,3 @@ def calculate_price(base, rate):
+ def calculate_price(base, rate):
 +    discount = 0.1
 +    return base * rate * (1 - discount)
 """,
@@ -354,7 +364,7 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="edge_non_python_markdown",
             name="Edge: Non-Python markdown documentation",
             description="Markdown documentation file should not be processed by Python analyzer.",
-            diff_patch="""@@ -0,0 +1,3 @@
+            diff_patch="""@@ -0,0 +1,2 @@
 +# Project Documentation
 +Updated architecture documentation.
 """,
@@ -368,7 +378,7 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="edge_python_syntax_error",
             name="Edge: Python code with syntax error",
             description="Malformed Python syntax is tolerated gracefully without crashing the runner.",
-            diff_patch="""@@ -1,2 +1,3 @@
+            diff_patch="""@@ -1,0 +1,2 @@
 +def broken_syntax(:
 +    return ===
 """,
@@ -382,7 +392,7 @@ def get_default_benchmark_dataset() -> BenchmarkDataset:
             id="edge_renamed_file_no_changes",
             name="Edge: Renamed file with zero modified lines",
             description="Renamed file with no added lines should not produce false positive findings.",
-            diff_patch="""@@ -1,5 +1,5 @@
+            diff_patch="""@@ -1,2 +1,2 @@
  def existing():
      pass
 """,

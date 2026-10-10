@@ -146,8 +146,9 @@ class BenchmarkRunner:
         fn = len(case.expected_findings) - len(expected_matched)
         fp = len(actual_findings) - len(actual_matched)
 
-        # True Negative: defined when ground truth expected findings is 0 and 0 findings produced
+        # True Negative and False Positive at case level
         tn = 1 if (case.is_negative_case and len(actual_findings) == 0) else 0
+        case_fp = 1 if (case.is_negative_case and len(actual_findings) > 0) else 0
 
         passed = (fn == 0 and fp == 0)
 
@@ -177,6 +178,7 @@ class BenchmarkRunner:
             fp=fp,
             fn=fn,
             tn=tn,
+            case_fp=case_fp,
             latency_ms=elapsed_ms,
             expected_count=len(case.expected_findings),
             actual_count=len(actual_findings),
@@ -233,11 +235,12 @@ class BenchmarkRunner:
             total_fp = sum(o.fp for o in outcomes)
             total_fn = sum(o.fn for o in outcomes)
             total_tn = sum(o.tn for o in outcomes)
+            total_fp_cases = sum(o.case_fp for o in outcomes)
 
             precision = calculate_precision(total_tp, total_fp)
             recall = calculate_recall(total_tp, total_fn)
             f1 = calculate_f1(precision, recall)
-            fpr = calculate_false_positive_rate(total_fp, total_tn)
+            fpr = calculate_false_positive_rate(total_fp_cases, total_tn)
 
             latencies = [o.latency_ms for o in outcomes]
             lat_stats = calculate_latency_statistics(latencies)
@@ -265,6 +268,7 @@ class BenchmarkRunner:
                 fp=total_fp,
                 fn=total_fn,
                 tn=total_tn,
+                fp_cases=total_fp_cases,
                 precision=precision,
                 recall=recall,
                 f1=f1,

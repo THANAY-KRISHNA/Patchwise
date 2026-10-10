@@ -54,17 +54,42 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        raw_list: List[str] = []
         if isinstance(v, str):
             v_stripped = v.strip()
             if v_stripped.startswith("[") and v_stripped.endswith("]"):
                 try:
-                    return json.loads(v_stripped)
+                    raw_list = json.loads(v_stripped)
                 except Exception:
-                    pass
-            return [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+                    raw_list = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+            else:
+                raw_list = [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
         elif isinstance(v, list):
-            return v
-        return ["http://localhost:3000", "http://127.0.0.1:3000"]
+            raw_list = [str(item).strip() for item in v]
+        else:
+            raw_list = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+        if not raw_list:
+            raise ValueError("CORS_ORIGINS cannot be empty.")
+
+        import urllib.parse
+        validated: List[str] = []
+        for origin in raw_list:
+            origin_str = origin.strip()
+            if origin_str == "*":
+                raise ValueError("Wildcard origin '*' is not allowed when allow_credentials=True.")
+            parsed = urllib.parse.urlparse(origin_str)
+            if parsed.scheme not in ("http", "https"):
+                raise ValueError(f"Malformed CORS origin '{origin_str}': Scheme must be http or https.")
+            if not parsed.netloc:
+                raise ValueError(f"Malformed CORS origin '{origin_str}': Missing host.")
+            if parsed.path not in ("", "/") or parsed.params or parsed.query or parsed.fragment:
+                raise ValueError(f"Malformed CORS origin '{origin_str}': Origin must not include path, query, or fragment.")
+
+            clean_origin = f"{parsed.scheme}://{parsed.netloc}"
+            validated.append(clean_origin)
+
+        return validated
 
     @field_validator("LLM_PROVIDER")
     @classmethod

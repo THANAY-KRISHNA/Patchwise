@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from .core.config import settings
 from .core.errors import ErrorCode, PatchwiseAPIException
-from .routers import health, reviews
+from .routers import benchmarks, health, reviews
 from .analyzer.registry import plugin_registry
 
 # Configure logging
@@ -50,6 +50,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(health.router, prefix=settings.API_V1_PREFIX)
 app.include_router(reviews.router, prefix=settings.API_V1_PREFIX)
+app.include_router(benchmarks.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get(f"{settings.API_V1_PREFIX}/plugins", tags=["Plugins"])

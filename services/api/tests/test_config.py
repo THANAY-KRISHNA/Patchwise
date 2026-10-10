@@ -30,6 +30,40 @@ def test_cors_origins_parsing():
     assert settings_json.CORS_ORIGINS == ["http://custom.local"]
 
 
+def test_cors_origins_wildcard_rejected():
+    with pytest.raises(ValidationError, match="Wildcard origin '\\*' is not allowed"):
+        Settings(
+            DATABASE_URL="sqlite+aiosqlite:///:memory:",
+            CORS_ORIGINS="*",
+        )
+
+    with pytest.raises(ValidationError, match="Wildcard origin '\\*' is not allowed"):
+        Settings(
+            DATABASE_URL="sqlite+aiosqlite:///:memory:",
+            CORS_ORIGINS=["http://localhost:3000", "*"],
+        )
+
+
+def test_cors_origins_malformed_rejected():
+    with pytest.raises(ValidationError, match="Scheme must be http or https"):
+        Settings(
+            DATABASE_URL="sqlite+aiosqlite:///:memory:",
+            CORS_ORIGINS="ftp://invalid.com",
+        )
+
+    with pytest.raises(ValidationError, match="Missing host"):
+        Settings(
+            DATABASE_URL="sqlite+aiosqlite:///:memory:",
+            CORS_ORIGINS="http://",
+        )
+
+    with pytest.raises(ValidationError, match="Origin must not include path"):
+        Settings(
+            DATABASE_URL="sqlite+aiosqlite:///:memory:",
+            CORS_ORIGINS="http://localhost:3000/api/v1",
+        )
+
+
 def test_invalid_llm_provider():
     with pytest.raises(ValidationError):
         Settings(

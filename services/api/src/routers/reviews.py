@@ -1,5 +1,5 @@
 """Review and Diff Ingestion Router for Patchwise."""
-from typing import List, Optional
+from typing import AsyncGenerator, List, Optional
 import uuid
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
@@ -8,15 +8,38 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..analyzer.orchestrator import AnalysisOrchestrator
 from ..core.errors import ErrorCode, PatchwiseAPIException
-from ..db.models import Finding, Review
-from ..db.session import get_db
+from ..db.models import Feedback, Finding, Review
+from ..db.session import AsyncSessionLocal, get_db
 from ..github.client import GitHubClient, parse_github_repo_and_number
 from ..parser.diff_parser import parse_single_file_patch
 from ..parser.models import ParsedFileDiff
-from ..schemas.findings import FindingCategory, FindingProvenance, FindingRead, FindingSeverity
+from ..schemas.findings import (
+    FeedbackCreate,
+    FeedbackRead,
+    FindingCategory,
+    FindingProvenance,
+    FindingRead,
+    FindingSeverity,
+)
 from ..schemas.reviews import ReviewRead, ReviewStatus, ReviewSubmissionRequest, ReviewSummary
 
 router = APIRouter(prefix="/reviews", tags=["Reviews & Diffs"])
+
+
+async def get_db_safe() -> AsyncGenerator[Optional[AsyncSession], None]:
+    """Provides DB session or yields None if database is unreachable."""
+    try:
+        async with AsyncSessionLocal() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+            finally:
+                await session.close()
+    except Exception:
+        yield None
 
 
 class DiffInspectionResponse(BaseModel):
@@ -52,15 +75,90 @@ async def create_pull_request_review(
     )
 
 
+@router.get("", response_model=List[ReviewRead])
+async def list_recent_reviews(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Optional[AsyncSession] = Depends(get_db_safe),
+):
+    """Fetch recent review history for dashboard."""
+    if db is None:
+        return []
+    try:
+        query = select(Review).order_by(Review.started_at.desc()).offset(offset).limit(limit)
+        result = await db.execute(query)
+        reviews = result.scalars().all()
+
+        review_reads = []
+        for r in reviews:
+            findings_query = select(Finding).where(Finding.review_id == r.id)
+            f_res = await db.execute(findings_query)
+            findings = f_res.scalars().all()
+
+            summary = ReviewSummary(total_findings=len(findings))
+            for f in findings:
+                if f.severity == "critical":
+                    summary.critical_count += 1
+                elif f.severity == "high":
+                    summary.high_count += 1
+                elif f.severity == "medium":
+                    summary.medium_count += 1
+                elif f.severity == "low":
+                    summary.low_count += 1
+                elif f.severity == "info":
+                    summary.info_count += 1
+
+                if f.source == "DETERMINISTIC_STATIC_ANALYSIS":
+                    summary.deterministic_count += 1
+                elif f.source == "AI_GENERATED_HYPOTHESIS":
+                    summary.ai_hypothesis_count += 1
+                elif f.source == "VERIFIED_TEST_RESULT":
+                    summary.verified_test_count += 1
+
+            review_reads.append(
+                ReviewRead(
+                    id=r.id,
+                    repository=r.repository,
+                    pr_number=r.pr_number,
+                    pr_title=r.pr_title,
+                    commit_sha=r.commit_sha,
+                    status=ReviewStatus(r.status),
+                    engine_version=r.engine_version,
+                    started_at=r.started_at,
+                    completed_at=r.completed_at,
+                    duration_ms=r.duration_ms,
+                    error_code=r.error_code,
+                    summary=summary,
+                    findings=[FindingRead.model_validate(f) for f in findings],
+                )
+            )
+        return review_reads
+    except Exception:
+        return []
+
+
 @router.get("/{review_id}", response_model=ReviewRead)
 async def get_review_by_id(
     review_id: uuid.UUID,
-    db: AsyncSession = Depends(get_db),
+    db: Optional[AsyncSession] = Depends(get_db_safe),
 ):
     """Fetch review metadata and summary by ID."""
-    query = select(Review).where(Review.id == review_id)
-    result = await db.execute(query)
-    review = result.scalar_one_or_none()
+    if db is None:
+        raise PatchwiseAPIException(
+            status_code=503,
+            error_code=ErrorCode.DATABASE_ERROR,
+            message="Database service temporarily unavailable.",
+        )
+    try:
+        query = select(Review).where(Review.id == review_id)
+        result = await db.execute(query)
+        review = result.scalar_one_or_none()
+    except Exception:
+        raise PatchwiseAPIException(
+            status_code=503,
+            error_code=ErrorCode.DATABASE_ERROR,
+            message="Database service temporarily unavailable.",
+        )
 
     if not review:
         raise PatchwiseAPIException(
@@ -132,6 +230,40 @@ async def get_review_findings(
     result = await db.execute(query)
     findings = result.scalars().all()
     return [FindingRead.model_validate(f) for f in findings]
+
+
+@router.post(
+    "/{review_id}/findings/{finding_id}/feedback",
+    response_model=FeedbackRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def submit_finding_feedback(
+    review_id: uuid.UUID,
+    finding_id: uuid.UUID,
+    payload: FeedbackCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Record reviewer feedback (useful, incorrect, irrelevant) on a finding."""
+    f_res = await db.execute(
+        select(Finding).where(Finding.id == finding_id, Finding.review_id == review_id)
+    )
+    finding = f_res.scalar_one_or_none()
+    if not finding:
+        raise PatchwiseAPIException(
+            status_code=404,
+            error_code=ErrorCode.PR_NOT_FOUND,
+            message=f"Finding '{finding_id}' not found for review '{review_id}'.",
+        )
+
+    feedback_record = Feedback(
+        finding_id=finding_id,
+        verdict=payload.verdict.value,
+        comment=payload.comment,
+    )
+    db.add(feedback_record)
+    await db.commit()
+    await db.refresh(feedback_record)
+    return FeedbackRead.model_validate(feedback_record)
 
 
 @router.post("/inspect", response_model=DiffInspectionResponse, status_code=status.HTTP_200_OK)

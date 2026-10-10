@@ -240,3 +240,47 @@ async def test_composite_orchestrator_secrets_not_exposed_in_summary(db_session:
     assert secret_key not in (review.summary.ai_error_sanitized or "")
     assert secret_key not in (review.error_code or "")
 
+
+@pytest.mark.asyncio
+async def test_orchestrator_rejects_exceeded_file_count(db_session: AsyncSession):
+    """Verifies that PRs with more changed files than MAX_FILES_PER_REVIEW fail safely."""
+    from src.core.errors import ErrorCode, PatchwiseAPIException
+    from src.github.models import GitHubChangedFile
+
+    # Generate 25 files (limit is 20)
+    oversized_files = [
+        GitHubChangedFile(filename=f"src/module_{i}.py", status="modified", patch="@@ -1,1 +1,2 @@\n+x = 1\n")
+        for i in range(25)
+    ]
+    gh_client = MockGitHubClient(sample_files=oversized_files)
+    orchestrator = AnalysisOrchestrator(db=db_session, github_client=gh_client)
+
+    with pytest.raises(PatchwiseAPIException) as exc_info:
+        await orchestrator.run_review("https://github.com/my-org/oversized-repo", 101)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCode.PATCH_TOO_LARGE
+    assert "file count" in exc_info.value.message.lower()
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_rejects_exceeded_patch_chars(db_session: AsyncSession):
+    """Verifies that PRs with total diff characters exceeding MAX_PATCH_CHARS fail safely."""
+    from src.core.errors import ErrorCode, PatchwiseAPIException
+    from src.github.models import GitHubChangedFile
+
+    # Generate patch exceeding 80,000 characters
+    large_patch = "@@ -1,1 +1,2 @@\n+" + ("a" * 85000) + "\n"
+    oversized_files = [
+        GitHubChangedFile(filename="src/large_file.py", status="modified", patch=large_patch)
+    ]
+    gh_client = MockGitHubClient(sample_files=oversized_files)
+    orchestrator = AnalysisOrchestrator(db=db_session, github_client=gh_client)
+
+    with pytest.raises(PatchwiseAPIException) as exc_info:
+        await orchestrator.run_review("https://github.com/my-org/large-patch-repo", 102)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCode.PATCH_TOO_LARGE
+    assert "total diff characters" in exc_info.value.message.lower() or "exceeds" in exc_info.value.message.lower()
+

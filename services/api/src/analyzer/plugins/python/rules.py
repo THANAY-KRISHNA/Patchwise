@@ -13,6 +13,17 @@ SQL_KEYWORDS_REGEX = re.compile(
 )
 
 
+def _extract_binop_string_constants(node: ast.AST) -> List[str]:
+    """Recursively collect string constants from binary operations (+, %)."""
+    constants: List[str] = []
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        constants.append(node.value)
+    elif isinstance(node, ast.BinOp):
+        constants.extend(_extract_binop_string_constants(node.left))
+        constants.extend(_extract_binop_string_constants(node.right))
+    return constants
+
+
 class PythonAstRuleVisitor(ast.NodeVisitor):
     """AST Visitor detecting deterministic Python code smells, bugs, and security risks."""
 
@@ -213,51 +224,56 @@ class PythonAstRuleVisitor(ast.NodeVisitor):
             if isinstance(node.func, ast.Attribute) and node.func.attr in ("execute", "executemany"):
                 if node.args:
                     query_arg = node.args[0]
-                    # Check if query arg is an f-string
-                    if isinstance(query_arg, ast.JoinedStr):
-                        # Extract static text fragments
-                        static_parts = [
-                            part.value for part in query_arg.values if isinstance(part, ast.Constant) and isinstance(part.value, str)
-                        ]
-                        full_static = " ".join(static_parts)
-                        if SQL_KEYWORDS_REGEX.search(full_static):
-                            self.findings.append(
-                                CandidateFinding(
-                                    rule_id="PY004",
-                                    source=FindingProvenance.DETERMINISTIC_STATIC_ANALYSIS,
-                                    severity=FindingSeverity.HIGH,
-                                    category=FindingCategory.SECURITY_PATTERN,
-                                    file_path=self.file_path,
-                                    start_line=actual_line,
-                                    end_line=actual_line,
-                                    title="Potential SQL injection via f-string query formatting",
-                                    explanation=(
-                                        "A SQL command is being assembled using Python f-string interpolation inside an 'execute()' call. "
-                                        "This bypasses database driver escaping and allows SQL injection."
-                                    ),
-                                    suggested_fix="Use parameterized queries with placeholder bindings (e.g., 'execute(query, (param1, param2))').",
+                    query_line = self._get_actual_line(query_arg) or actual_line
+                    if self._is_in_changed_lines(query_line) or self._is_in_changed_lines(actual_line):
+                        target_line = query_line if self._is_in_changed_lines(query_line) else actual_line
+                        # Check if query arg is an f-string
+                        if isinstance(query_arg, ast.JoinedStr):
+                            # Extract static text fragments
+                            static_parts = [
+                                part.value for part in query_arg.values if isinstance(part, ast.Constant) and isinstance(part.value, str)
+                            ]
+                            full_static = " ".join(static_parts)
+                            if SQL_KEYWORDS_REGEX.search(full_static):
+                                self.findings.append(
+                                    CandidateFinding(
+                                        rule_id="PY004",
+                                        source=FindingProvenance.DETERMINISTIC_STATIC_ANALYSIS,
+                                        severity=FindingSeverity.HIGH,
+                                        category=FindingCategory.SECURITY_PATTERN,
+                                        file_path=self.file_path,
+                                        start_line=target_line,
+                                        end_line=target_line,
+                                        title="Potential SQL injection via f-string query formatting",
+                                        explanation=(
+                                            "A SQL command is being assembled using Python f-string interpolation inside an 'execute()' call. "
+                                            "This bypasses database driver escaping and allows SQL injection."
+                                        ),
+                                        suggested_fix="Use parameterized queries with placeholder bindings (e.g., 'execute(query, (param1, param2))').",
+                                    )
                                 )
-                            )
-                    # Check if query arg is string concatenation (+) or % formatting
-                    elif isinstance(query_arg, ast.BinOp):
-                        if isinstance(query_arg.op, (ast.Add, ast.Mod)):
-                            self.findings.append(
-                                CandidateFinding(
-                                    rule_id="PY004",
-                                    source=FindingProvenance.DETERMINISTIC_STATIC_ANALYSIS,
-                                    severity=FindingSeverity.HIGH,
-                                    category=FindingCategory.SECURITY_PATTERN,
-                                    file_path=self.file_path,
-                                    start_line=actual_line,
-                                    end_line=actual_line,
-                                    title="Potential SQL injection via string concatenation or % formatting",
-                                    explanation=(
-                                        "Constructing SQL queries using string formatting or '+' concatenation exposes the application "
-                                        "to SQL injection if any interpolated variable contains user input."
-                                    ),
-                                    suggested_fix="Pass parameters separately as query arguments to the database driver.",
+                        # Check if query arg is string concatenation (+) or % formatting containing SQL keywords
+                        elif isinstance(query_arg, ast.BinOp) and isinstance(query_arg.op, (ast.Add, ast.Mod)):
+                            static_strings = _extract_binop_string_constants(query_arg)
+                            full_static = " ".join(static_strings)
+                            if SQL_KEYWORDS_REGEX.search(full_static):
+                                self.findings.append(
+                                    CandidateFinding(
+                                        rule_id="PY004",
+                                        source=FindingProvenance.DETERMINISTIC_STATIC_ANALYSIS,
+                                        severity=FindingSeverity.HIGH,
+                                        category=FindingCategory.SECURITY_PATTERN,
+                                        file_path=self.file_path,
+                                        start_line=target_line,
+                                        end_line=target_line,
+                                        title="Potential SQL injection via string concatenation or % formatting",
+                                        explanation=(
+                                            "Constructing SQL queries using string formatting or '+' concatenation exposes the application "
+                                            "to SQL injection if any interpolated variable contains user input."
+                                        ),
+                                        suggested_fix="Pass parameters separately as query arguments to the database driver.",
+                                    )
                                 )
-                            )
 
         self.generic_visit(node)
 
@@ -327,35 +343,39 @@ def analyze_python_file_diff(file_diff: ParsedFileDiff, all_pr_files: Optional[L
         if not snippet.strip():
             continue
 
-        # Try parsing full snippet; if indented block, try dedenting and re-mapping
+        # Try parsing snippet:
+        # 1. Directly
+        # 2. Dedented (if uniformly indented block)
+        # 3. Wrapped in a synthetic function (if indented statements/expressions)
         tree = None
+        visitor_mapping = line_mapping
         try:
             tree = ast.parse(snippet)
         except SyntaxError:
-            # Attempt parsing wrapped in synthetic function to handle indented statements
+            import textwrap
             try:
-                wrapped = "def _synthetic_wrapper():\n" + "\n".join("    " + line for line in reconstructed_lines)
-                wrapped_tree = ast.parse(wrapped)
-                # Remap: wrapped line numbers are offset by 1
-                wrapped_mapping = {ast_l - 1: file_l for ast_l, file_l in line_mapping.items()}
-                visitor = PythonAstRuleVisitor(
-                    file_path=file_diff.file_path, line_mapping=line_mapping, added_lines=added_set
-                )
-                visitor.visit(wrapped_tree)
-                findings.extend(visitor.findings)
-                continue
-            except Exception:
-                pass
+                dedented = textwrap.dedent(snippet)
+                tree = ast.parse(dedented)
+                visitor_mapping = line_mapping
+            except SyntaxError:
+                try:
+                    wrapped = "def _synthetic_wrapper():\n" + "\n".join("    " + line for line in reconstructed_lines)
+                    tree = ast.parse(wrapped)
+                    # Wrapped line numbers are offset by +1 (line 1 is def _synthetic_wrapper())
+                    # So AST lineno -> rel_idx = AST lineno - 1 -> line_mapping[rel_idx]
+                    visitor_mapping = {rel_idx + 1: file_l for rel_idx, file_l in line_mapping.items()}
+                except Exception:
+                    tree = None
 
         if tree:
             visitor = PythonAstRuleVisitor(
-                file_path=file_diff.file_path, line_mapping=line_mapping, added_lines=added_set
+                file_path=file_diff.file_path, line_mapping=visitor_mapping, added_lines=added_set
             )
             visitor.visit(tree)
             findings.extend(visitor.findings)
 
     # 2. Rule PY005: Test Suggestion Heuristic
-    # If business logic in this file has changes, check if test files were touched in the PR
+    # If business logic in this file has changes, check if related test files were touched in the PR
     norm_path = file_diff.file_path.lower()
     is_test_file = (
         norm_path.startswith("test_")
@@ -366,16 +386,40 @@ def analyze_python_file_diff(file_diff: ParsedFileDiff, all_pr_files: Optional[L
     )
 
     if not is_test_file and file_diff.added_lines and all_pr_files is not None:
-        has_tests_in_pr = any(
-            f.lower().startswith("test_")
-            or f.lower().endswith("_test.py")
-            or "/tests/" in f.lower()
-            or "\\tests\\" in f.lower()
-            or f.lower().startswith("tests/")
-            for f in all_pr_files
-        )
-        if not has_tests_in_pr:
-            # Anchor to the first added line of the file
+        from pathlib import Path
+
+        target_path_obj = Path(file_diff.file_path)
+        target_stem = target_path_obj.stem.lower()
+        target_tokens = {
+            token.lower()
+            for token in target_path_obj.parts[:-1]
+            if token.lower() not in ("src", "app", "lib", "source", ".", "")
+        }
+        target_tokens.add(target_stem)
+
+        def is_related_test(f_path: str) -> bool:
+            f_norm = f_path.lower()
+            is_test = (
+                f_norm.startswith("test_")
+                or f_norm.endswith("_test.py")
+                or "/tests/" in f_norm
+                or "\\tests\\" in f_norm
+                or f_norm.startswith("tests/")
+            )
+            if not is_test:
+                return False
+
+            f_stem = Path(f_path).stem.lower().replace("test_", "").replace("_test", "")
+            # 1. Exact or substring stem match
+            if target_stem in f_norm or f_stem in target_stem or (len(f_stem) >= 3 and target_stem.startswith(f_stem)):
+                return True
+            # 2. Directory module token match
+            if any(token in f_norm for token in target_tokens if len(token) >= 3):
+                return True
+            return False
+
+        has_related_test = any(is_related_test(f) for f in all_pr_files)
+        if not has_related_test:
             first_changed_line = file_diff.added_lines[0]
             findings.append(
                 CandidateFinding(
@@ -389,9 +433,9 @@ def analyze_python_file_diff(file_diff: ParsedFileDiff, all_pr_files: Optional[L
                     title="Missing test coverage for modified logic",
                     explanation=(
                         f"Pull request modifies business logic in '{file_diff.file_path}', "
-                        "but no test files (e.g., in 'tests/' or 'test_*.py') were added or updated."
+                        "but no related test files covering this module were added or updated."
                     ),
-                    suggested_fix="Add unit tests covering the new or changed code paths.",
+                    suggested_fix=f"Add unit tests for '{file_diff.file_path}' (e.g., in 'tests/test_{target_stem}.py').",
                 )
             )
 
