@@ -2,6 +2,7 @@
 import os
 from typing import Dict, List, Optional
 from .base import BaseLanguageAnalyzer, CandidateFinding, DiffHunk, LanguageReadiness, TestRecommendation
+from .plugins.javascript.analyzer import JavaScriptLanguageAnalyzer
 from .plugins.python.analyzer import PythonLanguageAnalyzer
 
 
@@ -63,7 +64,10 @@ class LanguagePluginRegistry:
 
     def get_analyzer(self, language_id: str) -> Optional[BaseLanguageAnalyzer]:
         """Look up analyzer by language ID."""
-        return self._plugins.get(language_id.lower())
+        lid = language_id.lower()
+        if lid in ("typescript", "ts", "javascript", "js"):
+            return self._plugins.get("javascript") or self._plugins.get("typescript")
+        return self._plugins.get(lid)
 
     def list_all(self) -> List[BaseLanguageAnalyzer]:
         """Return all registered plugins."""
@@ -87,17 +91,11 @@ class LanguagePluginRegistry:
 # Singleton global registry instance
 plugin_registry = LanguagePluginRegistry()
 
-# Register Active & Tested Plugins (Python in Milestone 3)
+# Register Active & Tested Plugins (Python in Milestone 3, JavaScript/TypeScript in Milestone 7A)
 plugin_registry.register(PythonLanguageAnalyzer())
+plugin_registry.register(JavaScriptLanguageAnalyzer())
 
 # Register Planned / Framework-Ready Plugins
-plugin_registry.register(
-    PlannedLanguageAnalyzerPlaceholder(
-        language_id="typescript",
-        name="TypeScript / JavaScript",
-        extensions=[".ts", ".tsx", ".js", ".jsx"],
-    )
-)
 plugin_registry.register(
     PlannedLanguageAnalyzerPlaceholder(
         language_id="java",

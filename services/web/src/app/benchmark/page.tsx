@@ -14,6 +14,7 @@ import { api } from '../../lib/api';
 import { BenchmarkRunSummary } from '../../types';
 
 export default function BenchmarkPage() {
+  const [selectedDataset, setSelectedDataset] = useState<'python' | 'javascript'>('python');
   const [benchmark, setBenchmark] = useState<BenchmarkRunSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -21,15 +22,23 @@ export default function BenchmarkPage() {
   const handleReload = () => {
     setLoading(true);
     setError(null);
-    api.getLatestBenchmark()
+    api.getLatestBenchmark(selectedDataset)
       .then((data) => setBenchmark(data))
       .catch((err: unknown) => setError((err as Error)?.message || 'Failed to load benchmark evaluation data'))
       .finally(() => setLoading(false));
   };
 
+  const handleSelectDataset = (ds: 'python' | 'javascript') => {
+    if (ds !== selectedDataset) {
+      setSelectedDataset(ds);
+      setLoading(true);
+      setError(null);
+    }
+  };
+
   useEffect(() => {
     let active = true;
-    api.getLatestBenchmark()
+    api.getLatestBenchmark(selectedDataset)
       .then((data) => {
         if (active) {
           setBenchmark(data);
@@ -45,7 +54,7 @@ export default function BenchmarkPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [selectedDataset]);
 
   const metrics = benchmark?.metrics;
 
@@ -58,18 +67,44 @@ export default function BenchmarkPage() {
             Evaluation Benchmark &amp; Quality Scorecard
           </h1>
           <p className="mt-1 text-xs text-[#8b949e]">
-            Quantitative evaluation metrics on frozen ground-truth dataset v1.0.0.
+            Quantitative evaluation metrics on frozen ground-truth datasets (v1.0.0).
           </p>
         </div>
 
-        <button
-          onClick={handleReload}
-          disabled={loading}
-          className="flex items-center gap-1.5 rounded-md border border-[#262c36] bg-[#14171d] px-3 py-1.5 text-xs font-medium text-[#8b949e] hover:bg-[#1a1e26] hover:text-white transition disabled:opacity-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Reload Results
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Dataset Switcher Tabs */}
+          <div className="inline-flex rounded-md border border-[#262c36] bg-[#14171d] p-0.5">
+            <button
+              onClick={() => handleSelectDataset('python')}
+              className={`rounded px-3 py-1 text-xs font-medium transition ${
+                selectedDataset === 'python'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-[#8b949e] hover:text-white'
+              }`}
+            >
+              Python (v1.0.0)
+            </button>
+            <button
+              onClick={() => handleSelectDataset('javascript')}
+              className={`rounded px-3 py-1 text-xs font-medium transition ${
+                selectedDataset === 'javascript'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-[#8b949e] hover:text-white'
+              }`}
+            >
+              JavaScript / TS (v1.0.0)
+            </button>
+          </div>
+
+          <button
+            onClick={handleReload}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded-md border border-[#262c36] bg-[#14171d] px-3 py-1.5 text-xs font-medium text-[#8b949e] hover:bg-[#1a1e26] hover:text-white transition disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+            Reload Results
+          </button>
+        </div>
       </div>
 
       {/* Dataset & Engine Metadata Banner */}

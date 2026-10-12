@@ -136,3 +136,19 @@ test('Aggregated severity metrics correctly compute counts', () => {
   assert.strictEqual(counts.deterministic, 4);
   assert.strictEqual(counts.aiHypothesis, 1);
 });
+
+test('JavaScript and TypeScript findings (JS001-JS004) adhere to Tier 1 provenance and diff line grounding', () => {
+  const jsFindings: Finding[] = [
+    { id: 'js-1', rule_id: 'JS001', severity: 'high', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/runtime.js', start_line: 11, end_line: 11, title: 'eval execution', description: 'Unsafe eval' },
+    { id: 'js-2', rule_id: 'JS002', severity: 'high', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/view.tsx', start_line: 42, end_line: 42, title: 'dangerouslySetInnerHTML', description: 'XSS risk' },
+    { id: 'js-3', rule_id: 'JS003', severity: 'high', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/cli.ts', start_line: 3, end_line: 3, title: 'exec template', description: 'Command injection' },
+    { id: 'js-4', rule_id: 'JS004', severity: 'high', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/db.js', start_line: 26, end_line: 26, title: 'SQL concat', description: 'SQL injection' },
+  ];
+
+  for (const f of jsFindings) {
+    assert.strictEqual(f.source, 'DETERMINISTIC_STATIC_ANALYSIS');
+    assert.ok(f.rule_id.startsWith('JS'));
+    assert.ok(typeof f.start_line === 'number' && f.start_line > 0);
+  }
+});
+

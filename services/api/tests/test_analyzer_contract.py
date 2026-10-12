@@ -74,3 +74,21 @@ def test_plugin_registration_and_lookup():
     overview = registry.get_status_overview()
     assert len(overview) == 1
     assert overview[0]["readiness_status"] == "IMPLEMENTED_AND_TESTED"
+
+
+def test_global_plugin_registry_has_python_and_javascript():
+    from src.analyzer.registry import plugin_registry
+
+    # Python
+    py_analyzer = plugin_registry.get_analyzer_for_file("server/main.py")
+    assert py_analyzer is not None
+    assert py_analyzer.language_id == "python"
+    assert py_analyzer.readiness_status == LanguageReadiness.IMPLEMENTED_AND_TESTED
+
+    # JavaScript / TypeScript extensions
+    for path in ["src/index.js", "src/Component.jsx", "src/service.ts", "src/App.tsx"]:
+        js_analyzer = plugin_registry.get_analyzer_for_file(path)
+        assert js_analyzer is not None
+        assert js_analyzer.language_id == "javascript"
+        assert js_analyzer.readiness_status == LanguageReadiness.IMPLEMENTED_AND_TESTED
+

@@ -125,3 +125,27 @@ test('API Client loads benchmark data', async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test('API Client passes dataset query parameter to benchmarks endpoint', async () => {
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = '';
+  globalThis.fetch = async (url: string | URL | Request) => {
+    requestedUrl = String(url);
+    return new Response(
+      JSON.stringify({ dataset_name: 'patchwise-javascript-deterministic-benchmark' }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  };
+
+  try {
+    const res = await api.getLatestBenchmark('javascript');
+    assert.ok(requestedUrl.includes('dataset=javascript'));
+    assert.strictEqual(res?.dataset_name, 'patchwise-javascript-deterministic-benchmark');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+

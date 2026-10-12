@@ -191,13 +191,32 @@ export default function SettingsPage() {
                 </td>
               </tr>
 
+              {/* JavaScript & TypeScript (Active in Milestone 7A) */}
+              <tr className="hover:bg-[#181c24] transition bg-emerald-950/10">
+                <td className="px-5 py-3 font-semibold text-white flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  TypeScript / JavaScript
+                </td>
+                <td className="px-5 py-3 font-mono text-[#8b949e]">.js, .jsx, .ts, .tsx</td>
+                <td className="px-5 py-3">
+                  <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Active &amp; Tested
+                  </span>
+                </td>
+                <td className="px-5 py-3 font-mono text-white">4 rules (JS001–JS004)</td>
+                <td className="px-5 py-3 font-mono text-[#8b949e]">1.0.0</td>
+                <td className="px-5 py-3 text-emerald-300 text-[11px]">
+                  Fully operational ESTree AST checks with diff line grounding.
+                </td>
+              </tr>
+
               {/* Planned Languages */}
               {[
-                { name: 'TypeScript / JavaScript', ext: '.ts, .tsx, .js, .jsx', plan: 'Milestone 7' },
-                { name: 'Java', ext: '.java', plan: 'Milestone 7' },
-                { name: 'C / C++', ext: '.c, .cpp, .h', plan: 'Milestone 7' },
-                { name: 'SQL / HiveQL', ext: '.sql, .hql', plan: 'Milestone 7' },
-                { name: 'PySpark & Scala', ext: '.py, .scala', plan: 'Milestone 7' },
+                { name: 'Java', ext: '.java', plan: 'Milestone 7B' },
+                { name: 'C / C++', ext: '.c, .cpp, .h', plan: 'Milestone 7C' },
+                { name: 'SQL / HiveQL', ext: '.sql, .hql', plan: 'Milestone 7D' },
+                { name: 'PySpark & Scala', ext: '.py, .scala', plan: 'Milestone 7E' },
               ].map((lang) => (
                 <tr key={lang.name} className="hover:bg-[#181c24] transition">
                   <td className="px-5 py-3 text-[#c9d1d9] flex items-center gap-2">

@@ -5,7 +5,7 @@
 - **Dataset:** `patchwise-python-deterministic-benchmark` (`v1.0.0`)
 - **Engine Version:** `0.1.0`
 - **Active Provider:** `none`
-- **Run Timestamp (UTC):** `2026-10-10 11:21:08 UTC`
+- **Run Timestamp (UTC):** `2026-10-12 18:50:45 UTC`
 - **Total Fixtures Evaluated:** `20`
 
 ## 2. Overall Performance Metrics
@@ -24,10 +24,10 @@
 
 ## 3. Latency Statistics
 
-- **Mean Latency per Fixture:** `2.43 ms`
-- **Median Latency:** `1.98 ms`
-- **95th Percentile (p95):** `2.47 ms`
-- **Total Benchmark Wall Time:** `48.63 ms`
+- **Mean Latency per Fixture:** `2.64 ms`
+- **Median Latency:** `2.13 ms`
+- **95th Percentile (p95):** `2.82 ms`
+- **Total Benchmark Wall Time:** `52.7 ms`
 
 ## 4. Per-Rule Breakdown
 
@@ -43,25 +43,25 @@
 
 | Status | Case ID | Name | Expected | Actual | Latency | Outcome Details |
 | :---: | :--- | :--- | :---: | :---: | :---: | :--- |
-| PASSED | `py001_missing_validation_positive` | PY001: Unchecked external payload dictionary key access | 1 | 1 | 12.85 ms | Matched all ground-truth expectations. |
-| PASSED | `py002_bare_except_positive` | PY002: Bare except clause | 1 | 1 | 2.47 ms | Matched all ground-truth expectations. |
-| PASSED | `py002_base_exception_positive` | PY002: Catching BaseException explicitly | 1 | 1 | 2.47 ms | Matched all ground-truth expectations. |
-| PASSED | `py002_silent_pass_positive` | PY002: Silent exception suppression with pass | 1 | 1 | 2.31 ms | Matched all ground-truth expectations. |
-| PASSED | `py003_mutable_list_default_positive` | PY003: Mutable list default parameter | 1 | 1 | 2.08 ms | Matched all ground-truth expectations. |
-| PASSED | `py003_mutable_dict_default_positive` | PY003: Mutable dictionary default parameter | 1 | 1 | 2.13 ms | Matched all ground-truth expectations. |
-| PASSED | `py004_eval_positive` | PY004: Insecure dynamic execution with eval() | 1 | 1 | 2.27 ms | Matched all ground-truth expectations. |
-| PASSED | `py004_pickle_positive` | PY004: Insecure deserialization via pickle.loads() | 1 | 1 | 2.19 ms | Matched all ground-truth expectations. |
-| PASSED | `py004_sql_injection_positive` | PY004: SQL injection via f-string query formatting | 1 | 1 | 2.07 ms | Matched all ground-truth expectations. |
-| PASSED | `py005_missing_tests_heuristic_positive` | PY005: Missing unit test recommendation | 1 | 1 | 2.08 ms | Matched all ground-truth expectations. |
-| PASSED | `clean_safe_dict_get_negative` | Clean: Safe dictionary access via .get() | 0 | 0 | 1.9 ms | Matched all ground-truth expectations. |
-| PASSED | `clean_specific_exception_negative` | Clean: Catching specific exceptions and logging | 0 | 0 | 1.8 ms | Matched all ground-truth expectations. |
-| PASSED | `clean_immutable_default_negative` | Clean: Safe None default with body initialization | 0 | 0 | 1.63 ms | Matched all ground-truth expectations. |
-| PASSED | `clean_parameterized_sql_negative` | Clean: Parameterized SQL statement with driver bindings | 0 | 0 | 1.51 ms | Matched all ground-truth expectations. |
-| PASSED | `clean_business_logic_with_tests_negative` | Clean: Business logic modification accompanied by unit tests | 0 | 0 | 1.6 ms | Matched all ground-truth expectations. |
-| PASSED | `edge_empty_diff` | Edge: Empty diff patch | 0 | 0 | 1.6 ms | Matched all ground-truth expectations. |
-| PASSED | `edge_binary_file_diff` | Edge: Binary file diff | 0 | 0 | 1.5 ms | Matched all ground-truth expectations. |
-| PASSED | `edge_non_python_markdown` | Edge: Non-Python markdown documentation | 0 | 0 | 1.23 ms | Matched all ground-truth expectations. |
-| PASSED | `edge_python_syntax_error` | Edge: Python code with syntax error | 0 | 0 | 1.59 ms | Matched all ground-truth expectations. |
+| PASSED | `py001_missing_validation_positive` | PY001: Unchecked external payload dictionary key access | 1 | 1 | 13.17 ms | Matched all ground-truth expectations. |
+| PASSED | `py002_bare_except_positive` | PY002: Bare except clause | 1 | 1 | 2.82 ms | Matched all ground-truth expectations. |
+| PASSED | `py002_base_exception_positive` | PY002: Catching BaseException explicitly | 1 | 1 | 2.38 ms | Matched all ground-truth expectations. |
+| PASSED | `py002_silent_pass_positive` | PY002: Silent exception suppression with pass | 1 | 1 | 2.2 ms | Matched all ground-truth expectations. |
+| PASSED | `py003_mutable_list_default_positive` | PY003: Mutable list default parameter | 1 | 1 | 2.33 ms | Matched all ground-truth expectations. |
+| PASSED | `py003_mutable_dict_default_positive` | PY003: Mutable dictionary default parameter | 1 | 1 | 2.37 ms | Matched all ground-truth expectations. |
+| PASSED | `py004_eval_positive` | PY004: Insecure dynamic execution with eval() | 1 | 1 | 2.75 ms | Matched all ground-truth expectations. |
+| PASSED | `py004_pickle_positive` | PY004: Insecure deserialization via pickle.loads() | 1 | 1 | 2.23 ms | Matched all ground-truth expectations. |
+| PASSED | `py004_sql_injection_positive` | PY004: SQL injection via f-string query formatting | 1 | 1 | 2.18 ms | Matched all ground-truth expectations. |
+| PASSED | `py005_missing_tests_heuristic_positive` | PY005: Missing unit test recommendation | 1 | 1 | 2.43 ms | Matched all ground-truth expectations. |
+| PASSED | `clean_safe_dict_get_negative` | Clean: Safe dictionary access via .get() | 0 | 0 | 1.96 ms | Matched all ground-truth expectations. |
+| PASSED | `clean_specific_exception_negative` | Clean: Catching specific exceptions and logging | 0 | 0 | 1.88 ms | Matched all ground-truth expectations. |
+| PASSED | `clean_immutable_default_negative` | Clean: Safe None default with body initialization | 0 | 0 | 1.73 ms | Matched all ground-truth expectations. |
+| PASSED | `clean_parameterized_sql_negative` | Clean: Parameterized SQL statement with driver bindings | 0 | 0 | 1.66 ms | Matched all ground-truth expectations. |
+| PASSED | `clean_business_logic_with_tests_negative` | Clean: Business logic modification accompanied by unit tests | 0 | 0 | 1.89 ms | Matched all ground-truth expectations. |
+| PASSED | `edge_empty_diff` | Edge: Empty diff patch | 0 | 0 | 1.82 ms | Matched all ground-truth expectations. |
+| PASSED | `edge_binary_file_diff` | Edge: Binary file diff | 0 | 0 | 2.09 ms | Matched all ground-truth expectations. |
+| PASSED | `edge_non_python_markdown` | Edge: Non-Python markdown documentation | 0 | 0 | 1.64 ms | Matched all ground-truth expectations. |
+| PASSED | `edge_python_syntax_error` | Edge: Python code with syntax error | 0 | 0 | 1.82 ms | Matched all ground-truth expectations. |
 | PASSED | `edge_renamed_file_no_changes` | Edge: Renamed file with zero modified lines | 0 | 0 | 1.35 ms | Matched all ground-truth expectations. |
 
 ## 6. Evaluation Methodology & Known Limitations

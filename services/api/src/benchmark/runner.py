@@ -22,6 +22,7 @@ from ..github.models import GitHubChangedFile
 from ..providers.base import BaseReviewProvider
 from ..providers.rule_only import RuleOnlyProvider
 from .dataset import DATASET_NAME, DATASET_VERSION, get_default_benchmark_dataset
+from .dataset_js import DATASET_NAME_JS, DATASET_VERSION_JS, get_javascript_benchmark_dataset
 from .metrics import (
     calculate_f1,
     calculate_false_positive_rate,
@@ -317,6 +318,12 @@ async def run_benchmark_cli():
     """CLI entry point for running evaluation benchmarks."""
     parser = argparse.ArgumentParser(description="Patchwise Benchmark Evaluation Suite Runner")
     parser.add_argument(
+        "--dataset",
+        default="python",
+        choices=["python", "javascript"],
+        help="Benchmark dataset to evaluate: python (default) or javascript",
+    )
+    parser.add_argument(
         "--provider",
         default="none",
         choices=["none", "mock", "openai", "gemini", "anthropic", "ollama"],
@@ -334,8 +341,13 @@ async def run_benchmark_cli():
     )
     args = parser.parse_args()
 
-    print(f"Starting Patchwise Benchmark Runner (Provider: {args.provider}, Dataset: {DATASET_VERSION})...")
-    runner = BenchmarkRunner(provider_id=args.provider)
+    if args.dataset == "javascript":
+        bench_dataset = get_javascript_benchmark_dataset()
+    else:
+        bench_dataset = get_default_benchmark_dataset()
+
+    print(f"Starting Patchwise Benchmark Runner (Provider: {args.provider}, Dataset: {bench_dataset.name} {bench_dataset.version})...")
+    runner = BenchmarkRunner(dataset=bench_dataset, provider_id=args.provider)
     summary = await runner.run()
 
     md_report = format_markdown_report(summary)

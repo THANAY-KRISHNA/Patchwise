@@ -171,9 +171,10 @@ export const api = {
   /**
    * Fetch the latest benchmark evaluation report.
    */
-  async getLatestBenchmark(): Promise<BenchmarkRunSummary | null> {
+  async getLatestBenchmark(dataset?: string): Promise<BenchmarkRunSummary | null> {
     try {
-      const data = await request<BenchmarkRunSummary>(`${API_V1}/benchmarks/latest`);
+      const url = dataset ? `${API_V1}/benchmarks/latest?dataset=${encodeURIComponent(dataset)}` : `${API_V1}/benchmarks/latest`;
+      const data = await request<BenchmarkRunSummary>(url);
       return data;
     } catch {
       return null;
