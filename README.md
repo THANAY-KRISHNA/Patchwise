@@ -19,9 +19,9 @@
 
 1. **Human-in-the-Loop:** Patchwise does not merge PRs, push commits, or autonomously alter repository code. All findings serve as decision-support suggestions for human code reviewers.
 2. **Three-Tier Provenance Separation:**
-   - **Tier 1 — Deterministic Static Analysis (`DETERMINISTIC_STATIC_ANALYSIS`):** High-confidence, reproducible findings produced by AST rules and syntax checkers with zero hallucination risk.
+   - **Tier 1 — Deterministic Static Analysis (`DETERMINISTIC_STATIC_ANALYSIS`):** High-confidence, reproducible findings produced by deterministic AST rules and syntax checkers (subject to static rule limitations, not LLM generation).
    - **Tier 2 — AI-Generated Hypotheses (`AI_GENERATED_HYPOTHESIS`):** Potential vulnerabilities and anti-patterns flagged by LLMs. Grounded in changed lines, but explicitly badged as *Unverified Hypotheses* (never presented as confirmed bugs).
-   - **Tier 3 — Verified Test Results (`VERIFIED_TEST_RESULT`):** Actionable test coverage gaps and regression test recommendations.
+   - **Tier 3 — Verified Test Results (`VERIFIED_TEST_RESULT`):** Findings validated by dynamic test runner or concrete test execution. Static test suggestions (e.g., heuristics recommending tests when business logic changes) are static recommendations, never represented as executed or verified test results.
 3. **Strict Line Grounding:** Every line-level finding must reference a valid line within the parsed diff hunk line set. Ungrounded line references are automatically discarded or downgraded to file scope.
 4. **Zero Untrusted Code Execution:** The server strictly acts as a static text and AST analyzer. It never executes arbitrary repository code, user-submitted build scripts, or external tests on the host system.
 5. **Prompt Injection Defense:** Diff chunks, commit messages, and PR titles are treated as untrusted user input, structurally isolated within XML boundaries.
@@ -149,7 +149,7 @@ cd services/api
 ```pwsh
 cd services/web
 
-# Run unit tests (Node.js test runner)
+# Run unit tests (Node.js native test runner: node --test)
 npm test
 
 # Run ESLint

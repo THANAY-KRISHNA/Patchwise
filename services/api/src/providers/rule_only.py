@@ -13,7 +13,7 @@ class RuleOnlyProvider(BaseReviewProvider):
     """
     Offline deterministic review provider.
     Executes AST and static analysis rules without requiring LLM credentials, network access, or tokens.
-    Guarantees 0% hallucination risk by enforcing DETERMINISTIC_STATIC_ANALYSIS provenance.
+    Enforces DETERMINISTIC_STATIC_ANALYSIS provenance for deterministic rule evaluation.
     """
 
     def __init__(self, registry: Optional[LanguagePluginRegistry] = None):

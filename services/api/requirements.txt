@@ -12,3 +12,4 @@ aiosqlite>=0.20.0
 pytest>=8.1.0
 pytest-asyncio>=0.23.5
 python-dotenv>=1.0.1
+esprima>=4.0.1
