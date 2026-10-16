@@ -1,0 +1,13 @@
+{
+  "name": "patchwise",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Patchwise Pull Request Review & Testing Assistant",
+  "scripts": {
+    "dev": "npm run dev --prefix services/web",
+    "dev:3001": "npm run dev --prefix services/web -- -p 3001",
+    "build": "npm run build --prefix services/web",
+    "test": "npm test --prefix services/web",
+    "lint": "npm run lint --prefix services/web"
+  }
+}

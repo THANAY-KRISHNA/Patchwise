@@ -211,11 +211,68 @@ export default function SettingsPage() {
                 </td>
               </tr>
 
+              {/* Java (Active in Milestone 7B) */}
+              <tr className="hover:bg-[#181c24] transition bg-emerald-950/10">
+                <td className="px-5 py-3 font-semibold text-white flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  Java
+                </td>
+                <td className="px-5 py-3 font-mono text-[#8b949e]">.java</td>
+                <td className="px-5 py-3">
+                  <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Active &amp; Tested
+                  </span>
+                </td>
+                <td className="px-5 py-3 font-mono text-white">4 rules (JV001–JV004)</td>
+                <td className="px-5 py-3 font-mono text-[#8b949e]">1.0.0</td>
+                <td className="px-5 py-3 text-emerald-300 text-[11px]">
+                  Fully operational lexical token &amp; syntax checks with diff line grounding.
+                </td>
+              </tr>
+
+              {/* C / C++ (Active in Milestone 7C) */}
+              <tr className="hover:bg-[#181c24] transition bg-emerald-950/10">
+                <td className="px-5 py-3 font-semibold text-white flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  C / C++
+                </td>
+                <td className="px-5 py-3 font-mono text-[#8b949e]">.c, .h, .cc, .cpp, .cxx, .hh, .hpp, .hxx</td>
+                <td className="px-5 py-3">
+                  <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Active &amp; Tested
+                  </span>
+                </td>
+                <td className="px-5 py-3 font-mono text-white">4 rules (CC001–CC004)</td>
+                <td className="px-5 py-3 font-mono text-[#8b949e]">1.0.0</td>
+                <td className="px-5 py-3 text-emerald-300 text-[11px]">
+                  Fully operational lexical token &amp; syntax checks with diff line grounding.
+                </td>
+              </tr>
+
+              {/* SQL / HiveQL (Active in Milestone 7D) */}
+              <tr className="hover:bg-[#181c24] transition bg-emerald-950/10">
+                <td className="px-5 py-3 font-semibold text-white flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                  SQL / HiveQL
+                </td>
+                <td className="px-5 py-3 font-mono text-[#8b949e]">.sql, .hql, .hive, .q</td>
+                <td className="px-5 py-3">
+                  <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-medium text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Active &amp; Tested
+                  </span>
+                </td>
+                <td className="px-5 py-3 font-mono text-white">5 rules (SQL001–SQL005)</td>
+                <td className="px-5 py-3 font-mono text-[#8b949e]">1.0.0</td>
+                <td className="px-5 py-3 text-emerald-300 text-[11px]">
+                  Fully operational lexical token &amp; syntax checks with diff line grounding.
+                </td>
+              </tr>
+
               {/* Planned Languages */}
               {[
-                { name: 'Java', ext: '.java', plan: 'Milestone 7B' },
-                { name: 'C / C++', ext: '.c, .cpp, .h', plan: 'Milestone 7C' },
-                { name: 'SQL / HiveQL', ext: '.sql, .hql', plan: 'Milestone 7D' },
                 { name: 'PySpark & Scala', ext: '.py, .scala', plan: 'Milestone 7E' },
               ].map((lang) => (
                 <tr key={lang.name} className="hover:bg-[#181c24] transition">

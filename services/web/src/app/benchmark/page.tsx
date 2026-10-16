@@ -14,7 +14,7 @@ import { api } from '../../lib/api';
 import { BenchmarkRunSummary } from '../../types';
 
 export default function BenchmarkPage() {
-  const [selectedDataset, setSelectedDataset] = useState<'python' | 'javascript'>('python');
+  const [selectedDataset, setSelectedDataset] = useState<'python' | 'javascript' | 'java' | 'cpp' | 'sql'>('python');
   const [benchmark, setBenchmark] = useState<BenchmarkRunSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +28,7 @@ export default function BenchmarkPage() {
       .finally(() => setLoading(false));
   };
 
-  const handleSelectDataset = (ds: 'python' | 'javascript') => {
+  const handleSelectDataset = (ds: 'python' | 'javascript' | 'java' | 'cpp' | 'sql') => {
     if (ds !== selectedDataset) {
       setSelectedDataset(ds);
       setLoading(true);
@@ -93,6 +93,36 @@ export default function BenchmarkPage() {
               }`}
             >
               JavaScript / TS (v1.0.0)
+            </button>
+            <button
+              onClick={() => handleSelectDataset('java')}
+              className={`rounded px-3 py-1 text-xs font-medium transition ${
+                selectedDataset === 'java'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-[#8b949e] hover:text-white'
+              }`}
+            >
+              Java (v1.0.0)
+            </button>
+            <button
+              onClick={() => handleSelectDataset('cpp')}
+              className={`rounded px-3 py-1 text-xs font-medium transition ${
+                selectedDataset === 'cpp'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-[#8b949e] hover:text-white'
+              }`}
+            >
+              C / C++ (v1.0.0)
+            </button>
+            <button
+              onClick={() => handleSelectDataset('sql')}
+              className={`rounded px-3 py-1 text-xs font-medium transition ${
+                selectedDataset === 'sql'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-[#8b949e] hover:text-white'
+              }`}
+            >
+              SQL / HiveQL (v1.0.0)
             </button>
           </div>
 

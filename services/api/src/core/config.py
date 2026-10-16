@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # Security & CORS Settings
     CORS_ORIGINS: Union[List[str], str] = Field(
-        default=["http://localhost:3000", "http://127.0.0.1:3000"],
+        default=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],
         description="Allowed origins for CORS."
     )
 
@@ -67,7 +67,7 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             raw_list = [str(item).strip() for item in v]
         else:
-            raw_list = ["http://localhost:3000", "http://127.0.0.1:3000"]
+            raw_list = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"]
 
         if not raw_list:
             raise ValueError("CORS_ORIGINS cannot be empty.")

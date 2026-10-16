@@ -2,8 +2,8 @@
 
 > **Deterministic AST Analysis · Line-Grounded AI Hypotheses · Human-in-the-Loop Review Dashboard**
 
-[![Backend Tests](https://img.shields.io/badge/Backend%20Tests-150%20Passing-brightgreen?style=flat-square)](services/api/tests/)
-[![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-10%20Passing-brightgreen?style=flat-square)](services/web/tests/)
+[![Backend Tests](https://img.shields.io/badge/Backend%20Tests-228%20Passing-brightgreen?style=flat-square)](services/api/tests/)
+[![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-13%20Passing-brightgreen?style=flat-square)](services/web/tests/)
 [![Benchmark F1](https://img.shields.io/badge/Benchmark%20F1-1.0000%20(v1.0.0)-blue?style=flat-square)](benchmark/)
 [![Engine Version](https://img.shields.io/badge/Engine%20Version-v0.1.0-orange?style=flat-square)](#)
 [![Python Version](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](services/api/)
@@ -42,7 +42,8 @@
                                │                                              │
                                │  1. GitHub Client & Pagination              │
                                │  2. Unified Diff Parser & Line Mapper        │
-                               │  3. Rule Engines: Python (PY) & JS/TS (JS)   │
+                               │  3. Rule Engines: Python, JS/TS, Java,       │
+                               │     C/C++, SQL/HiveQL                        │
                                │  4. LLM Adapter (OpenAI/Anthropic/None)      │
                                │  5. Line-Grounding & Schema Validator        │
                                │  6. PostgreSQL Persistence & Benchmark API   │
@@ -69,9 +70,9 @@ In accordance with our strict **Truth-in-Advertising Policy**, only language ana
 | :--- | :--- | :---: | :--- | :---: |
 | **Python** | `.py` | **Active & Tested** | `PY001` (Input Validation), `PY002` (Bare Except), `PY003` (Mutable Defaults), `PY004` (Unsafe Eval/Pickle/SQL), `PY005` (Test Suggestion) | `v1.0.0` |
 | **TypeScript / JavaScript** | `.js`, `.jsx`, `.ts`, `.tsx` | **Active & Tested** | `JS001` (Dynamic Execution), `JS002` (DOM HTML Injection / XSS), `JS003` (Shell Injection), `JS004` (SQL Injection) | `v1.0.0` |
-| **Java** | `.java` | *Planned (Milestone 7B)* | `JV001`–`JV005` (Framework Ready) | — |
-| **C / C++** | `.c`, `.cpp`, `.h` | *Planned (Milestone 7C)* | `CP001`–`CP005` (Framework Ready) | — |
-| **SQL / HiveQL** | `.sql`, `.hql` | *Planned (Milestone 7D)* | `SQ001`–`SQ005` (Framework Ready) | — |
+| **Java** | `.java` | **Active & Tested** | `JV001` (Unsafe Deserialization), `JV002` (Command Injection), `JV003` (JDBC SQL Injection), `JV004` (Path Traversal) | `v1.0.0` |
+| **C / C++** | `.c`, `.h`, `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` | **Active & Tested** | `CC001` (Unbounded String / Formatting APIs), `CC002` (Format-String Misuse), `CC003` (Command Injection via system/popen), `CC004` (Insecure Temp Filename APIs via tmpnam/mktemp) | `v1.0.0` |
+| **SQL / HiveQL** | `.sql`, `.hql`, `.hive`, `.q` | **Active & Tested** | `SQL001` (UPDATE/DELETE without WHERE), `SQL002` (Dynamic SQL Construction), `SQL003` (Overly Broad Privileges), `SQL004` (Hardcoded Credentials), `SQL005` (HiveQL Overwrite / Purge Risks) | `v1.0.0` |
 | **PySpark & Scala** | `.py`, `.scala` | *Planned (Milestone 7E)* | `SP001`–`SP005` (Framework Ready) | — |
 
 ---
@@ -80,14 +81,20 @@ In accordance with our strict **Truth-in-Advertising Policy**, only language ana
 
 | Feature / Component | Implemented Locally | Committed to Git | Tested | Deployed Publicly |
 | :--- | :---: | :---: | :---: | :---: |
-| **FastAPI Backend Core** | Yes | Yes | Yes (150 tests) | Local Dev Server |
+| **FastAPI Backend Core** | Yes | Yes | Yes (228 tests) | Local Dev Server |
 | **Diff Parser & Grounding Validator** | Yes | Yes | Yes (38 tests) | Local Dev Server |
 | **Python AST Analyzer (`PY001`–`PY005`)** | Yes | Yes | Yes (19 tests) | Local Dev Server |
 | **JavaScript/TypeScript Analyzer (`JS001`–`JS004`)** | Yes | Yes | Yes (24 tests) | Local Dev Server |
+| **Java Lexical & Syntax Analyzer (`JV001`–`JV004`)** | Yes | Yes | Yes (22 tests) | Local Dev Server |
+| **C/C++ Static Analyzer (`CC001`–`CC004`)** | Yes | Yes | Yes (25 tests) | Local Dev Server |
+| **SQL / HiveQL Static Analyzer (`SQL001`–`SQL005`)** | Yes | Yes | Yes (31 tests) | Local Dev Server |
 | **LLM Provider & Injection Guardrails** | Yes | Yes | Yes (29 tests) | Local Dev Server |
 | **Python Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
 | **JavaScript/TypeScript Benchmark (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
-| **Next.js Web Dashboard (4 Screens)** | Yes | Yes | Yes (10 tests + Build) | Local Dev Server |
+| **Java Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
+| **C/C++ Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
+| **SQL/HiveQL Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
+| **Next.js Web Dashboard (4 Screens)** | Yes | Yes | Yes (13 tests + Build) | Local Dev Server |
 | **PostgreSQL Persistence** | Yes | Yes | Yes (Alembic models) | Requires local DB |
 | **Cloud / External Deployment** | No | No | No | *Pending Approval* |
 
@@ -144,7 +151,7 @@ The dashboard is now accessible at `http://localhost:3000/`.
 cd services/api
 .\.venv\Scripts\pytest.exe -v
 ```
-**Actual Result:** `150 passed in 0.59s` (100% pass rate).
+**Actual Result:** `197 passed in 0.82s` (100% pass rate).
 
 ### 6.2 Run Frontend Quality Gates
 
@@ -161,7 +168,7 @@ npm run lint
 npm run build
 ```
 **Actual Results:**
-- `npm test`: 10/10 tests passed.
+- `npm test`: 12/12 tests passed.
 - `npm run lint`: 0 errors, 0 warnings (Exit code 0).
 - `npm run build`: Compiled successfully with Turbopack (Exit code 0).
 
@@ -180,7 +187,7 @@ cd services/api
 - **Recall:** 1.0000 (Finding level)
 - **F1 Score:** 1.0000 (Finding level)
 - **False Positive Rate:** 0.0000 (Case level)
-- **Mean Latency per Fixture:** 2.64 ms (Median: 2.13 ms, p95: 2.82 ms)
+- **Mean Latency per Fixture:** 5.71 ms (Median: 3.87 ms, p95: 4.74 ms)
 
 #### 6.3.2 JavaScript & TypeScript Benchmark (`v1.0.0` Frozen Ground-Truth Dataset)
 
@@ -195,21 +202,80 @@ cd services/api
 - **Recall:** 1.0000 (Finding level)
 - **F1 Score:** 1.0000 (Finding level)
 - **False Positive Rate:** 0.0000 (Case level)
-- **Mean Latency per Fixture:** 2.78 ms (Median: 2.24 ms, p95: 3.52 ms)
+- **Mean Latency per Fixture:** 5.45 ms (Median: 3.20 ms, p95: 4.89 ms)
+
+#### 6.3.3 Java Benchmark (`v1.0.0` Frozen Ground-Truth Dataset)
+
+```pwsh
+cd services/api
+.\.venv\Scripts\python.exe -m src.benchmark.runner --dataset java --provider none
+```
+**Actual Measured Performance:**
+- **Fixtures Evaluated:** 20 (10 positive, 5 clean negatives, 5 edge cases)
+- **Pass Rate:** 100.0% (20/20)
+- **Precision:** 1.0000 (Finding level)
+- **Recall:** 1.0000 (Finding level)
+- **F1 Score:** 1.0000 (Finding level)
+- **False Positive Rate:** 0.0000 (Case level)
+- **Mean Latency per Fixture:** 6.10 ms (Median: 3.89 ms, p95: 5.08 ms)
+
+#### 6.3.4 C / C++ Benchmark (`v1.0.0` Frozen Ground-Truth Dataset)
+
+```pwsh
+cd services/api
+.\.venv\Scripts\python.exe -m src.benchmark.runner --dataset cpp --provider none
+```
+**Actual Measured Performance:**
+- **Fixtures Evaluated:** 20 (10 positive, 5 clean negatives, 5 edge cases)
+- **Pass Rate:** 100.0% (20/20)
+- **Precision:** 1.0000 (Finding level)
+- **Recall:** 1.0000 (Finding level)
+- **F1 Score:** 1.0000 (Finding level)
+- **False Positive Rate:** 0.0000 (Case level)
+- **Mean Latency per Fixture:** 4.28 ms (Median: 2.01 ms, p95: 5.04 ms)
+
+#### 6.3.5 SQL / HiveQL Benchmark (`v1.0.0` Frozen Ground-Truth Dataset)
+
+```pwsh
+cd services/api
+.\.venv\Scripts\python.exe -m src.benchmark.runner --dataset sql --provider none
+```
+**Actual Measured Performance:**
+- **Fixtures Evaluated:** 20 (10 positive, 5 clean negatives, 5 edge cases)
+- **Pass Rate:** 100.0% (20/20)
+- **Precision:** 1.0000 (Finding level)
+- **Recall:** 1.0000 (Finding level)
+- **F1 Score:** 1.0000 (Finding level)
+- **False Positive Rate:** 0.0000 (Case level)
+- **Mean Latency per Fixture:** 4.28 ms (Median: 1.85 ms, p95: 2.88 ms)
 
 ---
 
 ## 7. Known Limitations & Scope Boundaries
 
-1. **Curated Fixture Scope:** The evaluation benchmarks measure performance against versioned synthetic and curated code-diff fixtures (`v1.0.0`). They validate parser correctness, AST matching, diff line grounding, and provenance enforcement, but do not prove real-world bug-detection accuracy across arbitrary unseen repositories.
+1. **Curated Fixture Scope:** The evaluation benchmarks measure performance against versioned synthetic and curated code-diff fixtures (`v1.0.0`). They validate parser correctness, rule pattern matching, diff line grounding, and provenance enforcement, but do not prove real-world bug-detection accuracy across arbitrary unseen repositories.
 2. **Local PostgreSQL Dependency:** When running without an active PostgreSQL daemon on port 5432, read endpoints (`GET /api/v1/reviews`) gracefully degrade to returning empty review sets. The dashboard handles this with an empty state and a demo inspection mode rather than crashing.
-3. **Pluggable Language Scope:** Python (`PY001`–`PY005`) and TypeScript / JavaScript (`JS001`–`JS004`) are currently implemented and tested. Additional language expansions (Java, C/C++, SQL, PySpark) are scheduled for Milestones 7B–7E.
+3. **Pluggable Language Scope:** Python (`PY001`–`PY005`), TypeScript / JavaScript (`JS001`–`JS004`), Java (`JV001`–`JV004`), C/C++ (`CC001`–`CC004`), and SQL/HiveQL (`SQL001`–`SQL005`) are currently implemented and tested. Additional language expansion (PySpark & Scala) is scheduled for Milestone 7E.
 4. **JavaScript/TypeScript Static AST Analysis Boundaries:**
    - **No Cross-File Taint Tracking:** The analyzer performs intra-hunk and intra-file AST inspections. It does not track variables across multiple files or modules.
    - **Type-Erased Preprocessing:** TypeScript type declarations and interface definitions are erased during preprocessing to allow ESTree AST parsing without altering line numbers. Semantic type checking or compiler symbol resolution is not performed.
    - **Dynamic Property & Reflection Limits:** Obfuscated or indirect calls (e.g., `window['ev' + 'al'](...)`) are not resolved dynamically without a full symbolic execution engine.
-5. **Zero Untrusted Code Execution:** Analyzed repository code and PR diffs are strictly parsed as text and ASTs. No user code, build scripts, or tests are executed on the application server.
-6. **Cloud Deployment:** In accordance with project safety guidelines, Patchwise has not been deployed to external cloud providers without explicit human confirmation.
+5. **Java Lexical Token & Syntax Analysis Boundaries:**
+   - **Lexical Call Analysis (Not Full Compiler AST):** Analysis operates on raw diff text hunks using Pygments Java lexical token streams and call/constructor expression matching. It does not perform compilation, classpath loading, or full AST resolution.
+   - **Intra-Hunk Scope:** Variables defined outside diff hunk boundaries are treated heuristically; cross-method or cross-class interprocedural taint flow is out of scope for lightweight PR diff analysis.
+   - **Dynamic Reflection & Method Handle Limits:** Calls invoked via `java.lang.reflect.Method.invoke()` or `MethodHandle` without explicit identifiers are not resolved.
+6. **C / C++ Lexical Token & Syntax Analysis Boundaries:**
+   - **Lexer-Based Call Extraction (Not Compiler AST):** Operates via Pygments `CLexer` and `CppLexer` token streams and call syntax analysis. It does not rely on heavy native toolchains (e.g., libclang) or full compiler translation units.
+   - **Preprocessor Directives & Macros:** Macro expansions (`#define`, `#ifdef`) are not expanded prior to tokenization. Complex macro wrappers around calls may not be parsed as direct function invocations.
+   - **Exploitability vs API Detection:** Detection of an API (such as `strcpy` or `sprintf` in `CC001`) flags risky unbounded patterns, but does not prove exploitability in surrounding code.
+   - **Intra-Hunk Scope:** Interprocedural pointer aliasing and memory buffer size tracking across functions are out of scope for diff-level static analysis.
+7. **SQL / HiveQL Lexical Token & Statement Segmentation Boundaries:**
+   - **Tokenization & Statement Boundary Heuristics:** Operates via Pygments `SqlLexer` token streams and semicolon-bounded statement segmentation. It does not connect to a live database or perform full vendor dialect AST parsing.
+   - **Dialect Handling:** General SQL applies to standard ANSI SQL, PostgreSQL, MySQL, and SQLite. Dynamic execution patterns support PL/SQL (`EXECUTE IMMEDIATE`) and T-SQL (`EXEC`, `sp_executesql`). HiveQL rules target overwrite semantics (`INSERT OVERWRITE TABLE`) and permanent drops (`PURGE`).
+   - **No Dataflow / Taint Engine:** `SQL002` distinguishes between static literals and dynamic expressions (concatenation `||`, `+`, variables). It does not claim full end-to-end dataflow taint analysis.
+   - **Credential Masking:** Secret literals detected under `SQL004` are masked as `***` in evidence and descriptions to prevent leaking credentials into review logs or UI displays.
+8. **Zero Untrusted Code Execution:** Analyzed repository code and PR diffs are strictly parsed as text, lexical tokens, and ASTs. No database statements are executed, no connections to real databases are opened, and no user code is run on the application server.
+9. **Cloud Deployment:** In accordance with project safety guidelines, Patchwise has not been deployed to external cloud providers without explicit human confirmation.
 
 ---
 

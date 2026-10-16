@@ -22,7 +22,10 @@ from ..github.models import GitHubChangedFile
 from ..providers.base import BaseReviewProvider
 from ..providers.rule_only import RuleOnlyProvider
 from .dataset import DATASET_NAME, DATASET_VERSION, get_default_benchmark_dataset
+from .dataset_cpp import DATASET_NAME_CPP, DATASET_VERSION_CPP, get_cpp_benchmark_dataset
+from .dataset_java import DATASET_NAME_JAVA, DATASET_VERSION_JAVA, get_java_benchmark_dataset
 from .dataset_js import DATASET_NAME_JS, DATASET_VERSION_JS, get_javascript_benchmark_dataset
+from .dataset_sql import DATASET_NAME_SQL, DATASET_VERSION_SQL, get_sql_benchmark_dataset
 from .metrics import (
     calculate_f1,
     calculate_false_positive_rate,
@@ -320,8 +323,8 @@ async def run_benchmark_cli():
     parser.add_argument(
         "--dataset",
         default="python",
-        choices=["python", "javascript"],
-        help="Benchmark dataset to evaluate: python (default) or javascript",
+        choices=["python", "javascript", "java", "cpp", "c", "c++", "sql", "hql", "hive", "hiveql"],
+        help="Benchmark dataset to evaluate: python (default), javascript, java, cpp, or sql",
     )
     parser.add_argument(
         "--provider",
@@ -343,6 +346,12 @@ async def run_benchmark_cli():
 
     if args.dataset == "javascript":
         bench_dataset = get_javascript_benchmark_dataset()
+    elif args.dataset == "java":
+        bench_dataset = get_java_benchmark_dataset()
+    elif args.dataset in ("cpp", "c", "c++"):
+        bench_dataset = get_cpp_benchmark_dataset()
+    elif args.dataset in ("sql", "hql", "hive", "hiveql"):
+        bench_dataset = get_sql_benchmark_dataset()
     else:
         bench_dataset = get_default_benchmark_dataset()
 

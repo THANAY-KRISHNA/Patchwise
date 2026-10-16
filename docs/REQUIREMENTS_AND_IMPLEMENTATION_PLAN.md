@@ -1,7 +1,7 @@
 # Patchwise: Architecture Specification, Requirements Checklist & Implementation Plan
 
 > **Specification Reference:** `docs/Patchwise_Project_Report.pdf` (21-page Flagship Project Blueprint)  
-> **Status:** Milestones 0–7A Completed & Verified; Ready for Milestone 7B (Java Language Plugin)  
+> **Status:** Milestones 0–7D Completed & Verified; Ready for Milestone 7E (PySpark & Scala Language Plugin)
 > **Target Stack:** Next.js (TypeScript) + FastAPI (Python 3.11+) + PostgreSQL + Docker
 
 ---
@@ -312,7 +312,11 @@ Patchwise/
 | **Milestone 5** | Benchmark Evaluation Runner (`v1.0.0` Dataset, Metrics, Reporting) | **COMPLETE** | 26 benchmark & metric tests |
 | **Backend Stabilization** | AST line mapping fix, hunk consistency, CORS security, resource limits | **COMPLETE** | 122 backend tests (Stabilization baseline) |
 | **Milestone 6** | Next.js Frontend Dashboard (Overview, PR Review, Evaluation, Settings) | **COMPLETE** | 8 frontend tests (Node runner); 125 backend tests total |
-| **Milestone 7** | Multi-Language Plugin Expansion (TS/JS, Java, C/C++, SQL, PySpark/Scala) | **PLANNED** | After Milestone 6 frontend approval |
+| **Milestone 7A** | JavaScript & TypeScript Analyzer (`JS001`–`JS004`, Benchmark `v1.0.0`) | **COMPLETE** | 24 backend tests (150 backend tests total); 10 frontend tests |
+| **Milestone 7B** | Java Static Analyzer (`JV001`–`JV004`, Benchmark `v1.0.0`) | **COMPLETE** | 22 backend tests (172 backend tests total); 11 frontend tests |
+| **Milestone 7C** | C / C++ Analyzer Plugin (`CP001`–`CP005`) | **PLANNED** | Next milestone |
+| **Milestone 7D** | SQL / HiveQL Analyzer Plugin (`SQ001`–`SQ005`) | **PLANNED** | Scheduled |
+| **Milestone 7E** | PySpark & Scala Analyzer Plugin (`SP001`–`SP005`) | **PLANNED** | Scheduled |
 | **Milestone 8** | System Hardening, E2E Integration & Demo Packaging | **PLANNED** | Final release milestone |
 
 ---
@@ -387,6 +391,27 @@ Patchwise/
    - Backend regression: 125/125 backend pytest passed (0 regressions).
    - Screenshots & visual verification captured for all 4 screens.
 
+#### Milestone 7A: JavaScript & TypeScript Analyzer (Completed & Verified)
+1. **Plugin Architecture:** Created modular `JavaScriptLanguageAnalyzer` under `services/api/src/analyzer/plugins/javascript/` implementing `BaseLanguageAnalyzer`.
+2. **Deterministic Rules (`JS001`–`JS004`):**
+   - `JS001`: Arbitrary/dynamic code execution via `eval()`, `new Function()`, and string-based `setTimeout`/`setInterval`.
+   - `JS002`: DOM HTML injection / XSS via `innerHTML`, `outerHTML`, `document.write()`, and React `dangerouslySetInnerHTML`.
+   - `JS003`: Shell command injection in child process execution (`child_process.exec()`, `execSync()`).
+   - `JS004`: SQL injection via dynamic string interpolation/concatenation in SQL query calls (e.g. `query()`, `raw()`).
+3. **AST Parser & Diff Grounding:** ESTree-compatible parsing with type erasure for TypeScript (.ts/.tsx), preserving line numbers and strict diff line grounding.
+4. **Verification & Benchmark:** Added 24 backend tests (150 backend tests total), 10 frontend tests, and dedicated 20-fixture benchmark dataset `v1.0.0` (100% pass rate, F1 1.0000, 3.74 ms mean latency).
+
+#### Milestone 7B: Java Static Analyzer (Completed & Verified)
+1. **Plugin Architecture:** Created modular `JavaLanguageAnalyzer` under `services/api/src/analyzer/plugins/java/` implementing `BaseLanguageAnalyzer`, registered in `LanguagePluginRegistry` for `.java` files.
+2. **Deterministic Rules (`JV001`–`JV004`):**
+   - `JV001`: Potentially unsafe Java deserialization via `ObjectInputStream.readObject()` and `readUnshared()`.
+   - `JV002`: Potentially unsafe dynamic command execution via `Runtime.getRuntime().exec()` or `ProcessBuilder` with dynamic argument concatenation.
+   - `JV003`: SQL injection through dynamically concatenated SQL in JDBC `Statement.executeQuery()`, `executeUpdate()`, or `Connection.prepareStatement()`.
+   - `JV004`: Potential path traversal involving dynamically constructed filesystem paths in `new File(...)`, `Paths.get(...)`, `Path.of(...)`, and `FileInputStream`.
+3. **Parser Implementation:** Pygments-based lexical tokenizer with line-preserving token streams (`stripnl=False, ensurenl=False`) and custom recursive expression parser. Zero new dependencies introduced.
+4. **Diff Line Grounding & Safety:** Enforces strict diff added-line grounding, `DETERMINISTIC_STATIC_ANALYSIS` provenance, zero bytecode compilation, and zero untrusted code execution.
+5. **Verification & Benchmark:** Added 22 backend tests (172 backend tests total), 11 frontend tests, and dedicated 20-fixture Java benchmark dataset `v1.0.0` (100% pass rate, F1 1.0000, 3.96 ms mean latency). Updated settings and benchmark dashboard with Java tabs.
+
 ---
 
 ## 7. Execution & Testing Guide
@@ -409,13 +434,14 @@ To run all 150 unit, integration, and security tests:
 cd services/api
 .\.venv\Scripts\pytest.exe -v
 ```
-**Current Test Status:** `150 passed in 0.59s` (100% pass rate).
+**Current Test Status:** `172 passed in 0.68s` (100% pass rate).
 
 > [!NOTE]
-> **Test Count Progression (122 -> 125 -> 150):**
+> **Test Count Progression (122 -> 125 -> 150 -> 172):**
 > - **122 Tests (Milestones 0–5 & Stabilization Baseline):** Concluded the initial stabilization audit.
 > - **125 Tests (Milestone 6 Total):** Added 3 integration tests in `services/api/tests/test_reviews_api.py` for review listing, benchmark summaries, and feedback flows.
 > - **150 Tests (Milestone 7A Total):** Added 19 unit tests in `services/api/tests/test_javascript_rules.py`, 5 benchmark validation tests in `services/api/tests/test_benchmark_js.py`, and 1 plugin contract registration test in `services/api/tests/test_analyzer_contract.py`.
+> - **172 Tests (Milestone 7B Total):** Added 17 unit tests in `services/api/tests/test_java_rules.py`, and 5 benchmark validation tests in `services/api/tests/test_benchmark_java.py`.
 
 ### 7.3 Run the Deterministic Benchmark
 
@@ -434,6 +460,20 @@ To evaluate fixtures in offline deterministic mode and generate evaluation repor
     --provider none `
     --output-json benchmark\results_js_v1.0.0.json `
     --output-markdown benchmark\results_js_v1.0.0.md
+
+# Run Java benchmark
+.\services\api\.venv\Scripts\python.exe benchmark\runner.py `
+    --dataset java `
+    --provider none `
+    --output-json benchmark\results_java_v1.0.0.json `
+    --output-markdown benchmark\results_java_v1.0.0.md
+
+# Run C/C++ benchmark
+.\services\api\.venv\Scripts\python.exe benchmark\runner.py `
+    --dataset cpp `
+    --provider none `
+    --output-json benchmark\results_cpp_v1.0.0.json `
+    --output-markdown benchmark\results_cpp_v1.0.0.md
 ```
 
 ### 7.4 Actual Benchmark Results: Python (`v1.0.0` Frozen Dataset)
@@ -454,9 +494,9 @@ To evaluate fixtures in offline deterministic mode and generate evaluation repor
 | **Recall** | **1.0000** (100.0%) | Finding level: $TP / (TP + FN)$ |
 | **F1 Score** | **1.0000** | Finding level: Harmonic mean |
 | **False Positive Rate** | **0.0000** (0.0%) | Case level: $FP_{cases} / (FP_{cases} + TN_{cases})$ |
-| **Mean Latency per Fixture** | **2.64 ms** | Latency |
-| **Median Latency** | **2.13 ms** | Latency |
-| **95th Percentile Latency (p95)** | **2.82 ms** | Latency |
+| **Mean Latency per Fixture** | **5.71 ms** | Latency |
+| **Median Latency** | **3.87 ms** | Latency |
+| **95th Percentile Latency (p95)** | **4.74 ms** | Latency |
 
 ### 7.5 Actual Benchmark Results: JavaScript / TypeScript (`v1.0.0` Frozen Dataset)
 
@@ -476,11 +516,77 @@ To evaluate fixtures in offline deterministic mode and generate evaluation repor
 | **Recall** | **1.0000** (100.0%) | Finding level: $TP / (TP + FN)$ |
 | **F1 Score** | **1.0000** | Finding level: Harmonic mean |
 | **False Positive Rate** | **0.0000** (0.0%) | Case level: $FP_{cases} / (FP_{cases} + TN_{cases})$ |
-| **Mean Latency per Fixture** | **2.78 ms** | Latency |
-| **Median Latency** | **2.24 ms** | Latency |
-| **95th Percentile Latency (p95)** | **3.52 ms** | Latency |
+| **Mean Latency per Fixture** | **5.45 ms** | Latency |
+| **Median Latency** | **3.20 ms** | Latency |
+| **95th Percentile Latency (p95)** | **4.89 ms** | Latency |
 
-**Reproducibility Verification:** Repeated execution bit-for-bit identical across runs. Zero repository or fixture code is ever executed.
+### 7.6 Actual Benchmark Results: Java (`v1.0.0` Frozen Dataset)
+
+- **Dataset:** `patchwise-java-deterministic-benchmark` (`v1.0.0`)
+- **Active Engine Version:** `0.1.0`
+- **Active Provider:** `none` (Deterministic Static Analysis)
+- **Fixtures Evaluated:** `20` (10 positive, 5 clean negatives, 5 edge cases)
+
+| Metric | Measured Value | Evaluation Unit |
+| :--- | :---: | :--- |
+| **Pass Rate** | **100.0%** (20/20) | Fixture level |
+| **True Positives (TP)** | **10** | Finding level |
+| **False Positives (FP)** | **0** | Finding level |
+| **False Negatives (FN)** | **0** | Finding level |
+| **True Negatives (TN)** | **10** | Case level |
+| **Precision** | **1.0000** (100.0%) | Finding level: $TP / (TP + FP)$ |
+| **Recall** | **1.0000** (100.0%) | Finding level: $TP / (TP + FN)$ |
+| **F1 Score** | **1.0000** | Finding level: Harmonic mean |
+| **False Positive Rate** | **0.0000** (0.0%) | Case level: $FP_{cases} / (FP_{cases} + TN_{cases})$ |
+| **Mean Latency per Fixture** | **6.10 ms** | Latency |
+| **Median Latency** | **3.89 ms** | Latency |
+| **95th Percentile Latency (p95)** | **5.08 ms** | Latency |
+
+### 7.7 Actual Benchmark Results: C / C++ (`v1.0.0` Frozen Dataset)
+
+- **Dataset:** `patchwise-cpp-deterministic-benchmark` (`v1.0.0`)
+- **Active Engine Version:** `0.1.0`
+- **Active Provider:** `none` (Deterministic Static Analysis)
+- **Fixtures Evaluated:** `20` (10 positive, 5 clean negatives, 5 edge cases)
+
+| Metric | Measured Value | Evaluation Unit |
+| :--- | :---: | :--- |
+| **Pass Rate** | **100.0%** (20/20) | Fixture level |
+| **True Positives (TP)** | **10** | Finding level |
+| **False Positives (FP)** | **0** | Finding level |
+| **False Negatives (FN)** | **0** | Finding level |
+| **True Negatives (TN)** | **10** | Case level |
+| **Precision** | **1.0000** (100.0%) | Finding level: $TP / (TP + FP)$ |
+| **Recall** | **1.0000** (100.0%) | Finding level: $TP / (TP + FN)$ |
+| **F1 Score** | **1.0000** | Finding level: Harmonic mean |
+| **False Positive Rate** | **0.0000** (0.0%) | Case level: $FP_{cases} / (FP_{cases} + TN_{cases})$ |
+| **Mean Latency per Fixture** | **4.28 ms** | Latency |
+| **Median Latency** | **2.01 ms** | Latency |
+| **95th Percentile Latency (p95)** | **5.04 ms** | Latency |
+
+### 7.8 Actual Benchmark Results: SQL / HiveQL (`v1.0.0` Frozen Dataset)
+
+- **Dataset:** `patchwise-sql-deterministic-benchmark` (`v1.0.0`)
+- **Active Engine Version:** `0.1.0`
+- **Active Provider:** `none` (Deterministic Static Analysis)
+- **Fixtures Evaluated:** `20` (10 positive, 5 clean negatives, 5 edge cases)
+
+| Metric | Measured Value | Evaluation Unit |
+| :--- | :---: | :--- |
+| **Pass Rate** | **100.0%** (20/20) | Fixture level |
+| **True Positives (TP)** | **10** | Finding level |
+| **False Positives (FP)** | **0** | Finding level |
+| **False Negatives (FN)** | **0** | Finding level |
+| **True Negatives (TN)** | **10** | Case level |
+| **Precision** | **1.0000** (100.0%) | Finding level: $TP / (TP + FP)$ |
+| **Recall** | **1.0000** (100.0%) | Finding level: $TP / (TP + FN)$ |
+| **F1 Score** | **1.0000** | Finding level: Harmonic mean |
+| **False Positive Rate** | **0.0000** (0.0%) | Case level: $FP_{cases} / (FP_{cases} + TN_{cases})$ |
+| **Mean Latency per Fixture** | **4.28 ms** | Latency |
+| **Median Latency** | **1.85 ms** | Latency |
+| **95th Percentile Latency (p95)** | **2.88 ms** | Latency |
+
+**Reproducibility Verification:** Repeated execution bit-for-bit identical across runs. Zero repository or fixture code is ever executed or connected to a live database.
 
 ---
 
@@ -568,15 +674,35 @@ To evaluate fixtures in offline deterministic mode and generate evaluation repor
   - [x] Dedicated versioned benchmark dataset `v1.0.0` (20 fixtures, 100% pass rate, F1 1.0000, 2.78 ms mean latency).
   - [x] Zero untrusted code execution verified.
 
-- [ ] **Milestone 7B: Java Analyzer Plugin (Planned Next)**
-  - [ ] Java AST parsing and rule implementation (`JV001`–`JV005`).
-  - [ ] Java test suite and versioned benchmark dataset.
+- [x] **Milestone 7B: Java Analyzer Plugin Implementation**
+  - [x] Modular plugin under `services/api/src/analyzer/plugins/java/` supporting `.java` files.
+  - [x] Deterministic lexical token and syntax rules: `JV001` (unsafe deserialization), `JV002` (command injection), `JV003` (JDBC SQL injection), `JV004` (path traversal).
+  - [x] Pygments-based lexical tokenizer with line-preserving call expression parsing (zero new dependencies).
+  - [x] Exact diff line grounding and three-tier provenance enforcement.
+  - [x] Unit test suite covering positives, negatives, edge cases, and line mapping (22 backend tests, total 172 backend tests).
+  - [x] Dedicated versioned benchmark dataset `v1.0.0` (20 fixtures, 100% pass rate, F1 1.0000, 3.96 ms mean latency).
+  - [x] Frontend settings and benchmark tabs updated with 11 passing frontend tests and clean production build.
+  - [x] Zero untrusted code execution verified (no compilation or runtime execution).
 
-- [ ] **Milestone 7C: C / C++ Analyzer Plugin (Planned)**
-  - [ ] C/C++ AST/Clang rule implementation (`CP001`–`CP005`).
+- [x] **Milestone 7C: C / C++ Analyzer Plugin Implementation**
+  - [x] Modular plugin under `services/api/src/analyzer/plugins/cpp/` supporting `.c`, `.h`, `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx`.
+  - [x] Deterministic lexical token & syntax rules: `CC001` (risky unbounded string/formatting APIs), `CC002` (format-string misuse), `CC003` (command injection via system/popen), `CC004` (insecure temporary-name APIs via tmpnam/mktemp).
+  - [x] Pygments-based `CLexer` / `CppLexer` tokenizer with exact diff line grounding (zero new dependencies).
+  - [x] Exact diff line grounding and three-tier provenance enforcement (`DETERMINISTIC_STATIC_ANALYSIS`).
+  - [x] Unit test suite covering positives, negatives, edge cases, multi-hunks, and line mapping (25 backend tests, total 197 backend tests).
+  - [x] Dedicated versioned benchmark dataset `v1.0.0` (20 fixtures, 100% pass rate, F1 1.0000, 4.28 ms mean latency).
+  - [x] Frontend settings and benchmark tabs updated with 12 passing frontend tests, ESLint, TypeScript check, and clean production build.
+  - [x] Zero untrusted code execution verified (no compilation, linking, or runtime execution).
 
-- [ ] **Milestone 7D: SQL / HiveQL Analyzer Plugin (Planned)**
-  - [ ] SQL parsing and dialect validation (`SQ001`–`SQ005`).
+- [x] **Milestone 7D: SQL / HiveQL Analyzer Plugin Implementation**
+  - [x] Modular plugin under `services/api/src/analyzer/plugins/sql/` supporting `.sql`, `.hql`, `.hive`, `.q`.
+  - [x] Deterministic lexical token & syntax rules: `SQL001` (UPDATE/DELETE without WHERE), `SQL002` (risky dynamic SQL construction), `SQL003` (overly broad privileges), `SQL004` (hardcoded credentials with masked secrets), `SQL005` (HiveQL unpartitioned overwrite & purge risks).
+  - [x] Pygments-based `SqlLexer` tokenizer with exact diff line grounding and statement segmentation (zero new dependencies).
+  - [x] Exact diff line grounding and three-tier provenance enforcement (`DETERMINISTIC_STATIC_ANALYSIS`).
+  - [x] Unit test suite covering positives, negatives, edge cases, multiline statements, multi-hunks, and line mapping (31 backend tests, total 228 backend tests).
+  - [x] Dedicated versioned benchmark dataset `v1.0.0` (20 fixtures, 100% pass rate, F1 1.0000, 4.28 ms mean latency).
+  - [x] Frontend settings and benchmark tabs updated with 13 passing frontend tests, ESLint, TypeScript check, and clean production build.
+  - [x] Zero untrusted code execution verified (no database connection, no statement execution).
 
 - [ ] **Milestone 7E: PySpark & Scala Analyzer Plugin (Planned)**
   - [ ] Big data transformation checks (`SP001`–`SP005`).

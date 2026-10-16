@@ -68,6 +68,18 @@ def format_markdown_report(summary: BenchmarkRunSummary) -> str:
         "PY003": "Mutable default arguments",
         "PY004": "Unsafe eval / pickle / SQL injection",
         "PY005": "Missing test heuristic",
+        "JS001": "Dynamic code execution",
+        "JS002": "DOM HTML injection / XSS",
+        "JS003": "Shell command injection",
+        "JS004": "SQL injection",
+        "JV001": "Unsafe deserialization",
+        "JV002": "Command injection",
+        "JV003": "JDBC SQL injection",
+        "JV004": "Path traversal",
+        "CC001": "Unbounded string / formatting APIs",
+        "CC002": "Format-string misuse",
+        "CC003": "Command injection via system/popen",
+        "CC004": "Insecure temporary filename APIs",
     }
 
     for rule_id, rm in m.per_rule.items():

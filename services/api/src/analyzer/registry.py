@@ -2,8 +2,11 @@
 import os
 from typing import Dict, List, Optional
 from .base import BaseLanguageAnalyzer, CandidateFinding, DiffHunk, LanguageReadiness, TestRecommendation
+from .plugins.cpp.analyzer import CppLanguageAnalyzer
+from .plugins.java.analyzer import JavaLanguageAnalyzer
 from .plugins.javascript.analyzer import JavaScriptLanguageAnalyzer
 from .plugins.python.analyzer import PythonLanguageAnalyzer
+from .plugins.sql.analyzer import SqlLanguageAnalyzer
 
 
 class PlannedLanguageAnalyzerPlaceholder(BaseLanguageAnalyzer):
@@ -67,6 +70,10 @@ class LanguagePluginRegistry:
         lid = language_id.lower()
         if lid in ("typescript", "ts", "javascript", "js"):
             return self._plugins.get("javascript") or self._plugins.get("typescript")
+        if lid in ("cpp", "c", "c++"):
+            return self._plugins.get("cpp")
+        if lid in ("sql", "hql", "hive", "hiveql"):
+            return self._plugins.get("sql")
         return self._plugins.get(lid)
 
     def list_all(self) -> List[BaseLanguageAnalyzer]:
@@ -91,32 +98,14 @@ class LanguagePluginRegistry:
 # Singleton global registry instance
 plugin_registry = LanguagePluginRegistry()
 
-# Register Active & Tested Plugins (Python in Milestone 3, JavaScript/TypeScript in Milestone 7A)
+# Register Active & Tested Plugins (Python in Milestone 3, JS/TS in Milestone 7A, Java in Milestone 7B, C/C++ in Milestone 7C, SQL in Milestone 7D)
 plugin_registry.register(PythonLanguageAnalyzer())
 plugin_registry.register(JavaScriptLanguageAnalyzer())
+plugin_registry.register(JavaLanguageAnalyzer())
+plugin_registry.register(CppLanguageAnalyzer())
+plugin_registry.register(SqlLanguageAnalyzer())
 
 # Register Planned / Framework-Ready Plugins
-plugin_registry.register(
-    PlannedLanguageAnalyzerPlaceholder(
-        language_id="java",
-        name="Java",
-        extensions=[".java"],
-    )
-)
-plugin_registry.register(
-    PlannedLanguageAnalyzerPlaceholder(
-        language_id="cpp",
-        name="C / C++",
-        extensions=[".c", ".cpp", ".h", ".hpp"],
-    )
-)
-plugin_registry.register(
-    PlannedLanguageAnalyzerPlaceholder(
-        language_id="sql",
-        name="SQL / HiveQL",
-        extensions=[".sql", ".hql"],
-    )
-)
 plugin_registry.register(
     PlannedLanguageAnalyzerPlaceholder(
         language_id="spark",

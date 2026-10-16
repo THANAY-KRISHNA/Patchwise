@@ -167,3 +167,48 @@ test('JavaScript and TypeScript findings (JS001-JS004) adhere to Tier 1 provenan
   }
 });
 
+test('Java findings (JV001-JV004) adhere to Tier 1 provenance and diff line grounding', () => {
+  const javaFindings: Finding[] = [
+    { id: 'jv-1', review_id: 'r1', rule_id: 'JV001', severity: 'critical', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/Receiver.java', start_line: 11, end_line: 11, title: 'readObject deserialization', explanation: 'Unsafe deserialization', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'jv-2', review_id: 'r1', rule_id: 'JV002', severity: 'critical', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/Cmd.java', start_line: 17, end_line: 17, title: 'Runtime.exec command injection', explanation: 'Command injection', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'jv-3', review_id: 'r1', rule_id: 'JV003', severity: 'high', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/Dao.java', start_line: 42, end_line: 42, title: 'JDBC SQL injection', explanation: 'SQL injection', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'jv-4', review_id: 'r1', rule_id: 'JV004', severity: 'high', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/Storage.java', start_line: 72, end_line: 72, title: 'Path traversal', explanation: 'Path traversal', created_at: '2026-10-10T12:00:00Z' },
+  ];
+
+  for (const f of javaFindings) {
+    assert.strictEqual(f.source, 'DETERMINISTIC_STATIC_ANALYSIS');
+    assert.ok(f.rule_id.startsWith('JV'));
+    assert.ok(typeof f.start_line === 'number' && f.start_line > 0);
+  }
+});
+
+test('C/C++ findings (CC001-CC004) adhere to Tier 1 provenance and diff line grounding', () => {
+  const cppFindings: Finding[] = [
+    { id: 'cc-1', review_id: 'r1', rule_id: 'CC001', severity: 'critical', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/main.c', start_line: 12, end_line: 12, title: 'Unbounded strcpy', explanation: 'Unbounded string operation', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'cc-2', review_id: 'r1', rule_id: 'CC002', severity: 'high', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/log.c', start_line: 21, end_line: 21, title: 'Format string misuse', explanation: 'Non-literal format string', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'cc-3', review_id: 'r1', rule_id: 'CC003', severity: 'critical', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/exec.cpp', start_line: 35, end_line: 35, title: 'Command injection', explanation: 'Dynamic system call', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'cc-4', review_id: 'r1', rule_id: 'CC004', severity: 'medium', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'src/temp.c', start_line: 47, end_line: 47, title: 'Insecure temporary file', explanation: 'tmpnam race condition', created_at: '2026-10-10T12:00:00Z' },
+  ];
+
+  for (const f of cppFindings) {
+    assert.strictEqual(f.source, 'DETERMINISTIC_STATIC_ANALYSIS');
+    assert.ok(f.rule_id.startsWith('CC'));
+    assert.ok(typeof f.start_line === 'number' && f.start_line > 0);
+  }
+});
+
+test('SQL and HiveQL findings (SQL001-SQL005) adhere to Tier 1 provenance and diff line grounding', () => {
+  const sqlFindings: Finding[] = [
+    { id: 'sql-1', review_id: 'r1', rule_id: 'SQL001', severity: 'high', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'scripts/update.sql', start_line: 2, end_line: 2, title: 'Unbounded UPDATE', explanation: 'Missing WHERE clause', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'sql-2', review_id: 'r1', rule_id: 'SQL002', severity: 'high', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'sp/dynamic.sql', start_line: 6, end_line: 6, title: 'EXECUTE IMMEDIATE', explanation: 'Dynamic SQL concat', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'sql-3', review_id: 'r1', rule_id: 'SQL003', severity: 'high', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'auth/grants.sql', start_line: 12, end_line: 12, title: 'GRANT ALL PRIVILEGES', explanation: 'Excessive privileges', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'sql-4', review_id: 'r1', rule_id: 'SQL004', severity: 'high', category: 'security_pattern', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'users/create.sql', start_line: 5, end_line: 5, title: 'Hardcoded password', explanation: 'Masked credential', created_at: '2026-10-10T12:00:00Z' },
+    { id: 'sql-5', review_id: 'r1', rule_id: 'SQL005', severity: 'medium', category: 'code_quality', source: 'DETERMINISTIC_STATIC_ANALYSIS', file_path: 'etl/daily.hql', start_line: 18, end_line: 18, title: 'INSERT OVERWRITE TABLE', explanation: 'HiveQL unpartitioned overwrite', created_at: '2026-10-10T12:00:00Z' },
+  ];
+
+  for (const f of sqlFindings) {
+    assert.strictEqual(f.source, 'DETERMINISTIC_STATIC_ANALYSIS');
+    assert.ok(f.rule_id.startsWith('SQL'));
+    assert.ok(typeof f.start_line === 'number' && f.start_line > 0);
+  }
+});

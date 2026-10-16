@@ -92,3 +92,23 @@ def test_global_plugin_registry_has_python_and_javascript():
         assert js_analyzer.language_id == "javascript"
         assert js_analyzer.readiness_status == LanguageReadiness.IMPLEMENTED_AND_TESTED
 
+    # Java extension
+    java_analyzer = plugin_registry.get_analyzer_for_file("src/main/java/com/example/App.java")
+    assert java_analyzer is not None
+    assert java_analyzer.language_id == "java"
+    assert java_analyzer.readiness_status == LanguageReadiness.IMPLEMENTED_AND_TESTED
+
+    # C and C++ extensions
+    for path in ["src/main.c", "include/header.h", "src/core.cc", "src/engine.cpp", "src/util.cxx", "include/core.hh", "include/app.hpp", "include/types.hxx"]:
+        cpp_analyzer = plugin_registry.get_analyzer_for_file(path)
+        assert cpp_analyzer is not None
+        assert cpp_analyzer.language_id == "cpp"
+        assert cpp_analyzer.readiness_status == LanguageReadiness.IMPLEMENTED_AND_TESTED
+
+    # SQL and HiveQL extensions
+    for path in ["migrations/001.sql", "etl/pipeline.hql", "analytics/metrics.hive", "queries/report.q"]:
+        sql_analyzer = plugin_registry.get_analyzer_for_file(path)
+        assert sql_analyzer is not None
+        assert sql_analyzer.language_id == "sql"
+        assert sql_analyzer.readiness_status == LanguageReadiness.IMPLEMENTED_AND_TESTED
+
