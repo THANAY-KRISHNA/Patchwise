@@ -66,11 +66,11 @@ test('API Client submits feedback payload to correct endpoint', async () => {
     capturedBody = String(init?.body || '');
     return new Response(
       JSON.stringify({
-        status: 'recorded',
-        feedback_id: 'fb-123',
+        id: 'fb-123',
         finding_id: 'f-456',
         verdict: 'useful',
-        recorded_at: '2026-10-10T12:00:00Z',
+        comment: 'Valid finding',
+        created_at: '2026-10-10T12:00:00Z',
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
@@ -85,8 +85,8 @@ test('API Client submits feedback payload to correct endpoint', async () => {
     const parsedBody = JSON.parse(capturedBody);
     assert.strictEqual(parsedBody.verdict, 'useful');
     assert.strictEqual(parsedBody.comment, 'Valid finding');
-    assert.strictEqual(result.status, 'recorded');
-    assert.strictEqual(result.feedback_id, 'fb-123');
+    assert.strictEqual(result.id, 'fb-123');
+    assert.strictEqual(result.finding_id, 'f-456');
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -97,14 +97,29 @@ test('API Client loads benchmark data', async () => {
   const mockBenchmark = {
     dataset_name: 'patchwise-python-deterministic-benchmark',
     dataset_version: 'v1.0.0',
+    engine_version: '0.1.0',
+    provider: 'none',
+    timestamp: '2026-10-10T12:00:00Z',
     metrics: {
-      finding_level: { precision: 1.0, recall: 0.85, f1: 0.91, fpr: 0.0, true_positives: 17, false_positives: 0, false_negatives: 3 },
-      case_level: { true_negatives: 4, evaluated_cases: 20 },
-      latency_ms: { mean: 2.1, p50: 1.9, p95: 4.2 },
+      total_cases: 20,
+      passed_cases: 20,
+      failed_cases: 0,
+      tp: 10,
+      fp: 0,
+      fn: 0,
+      tn: 10,
+      fp_cases: 0,
+      precision: 1.0,
+      recall: 1.0,
+      f1: 1.0,
+      false_positive_rate: 0.0,
+      total_latency_ms: 48.6,
+      mean_latency_ms: 2.43,
+      median_latency_ms: 1.98,
+      p95_latency_ms: 2.47,
+      per_rule: {},
     },
-    total_cases: 20,
-    generated_at: '2026-10-10T12:00:00Z',
-    reproducible: true,
+    case_outcomes: [],
   };
 
   globalThis.fetch = async (url: string | URL | Request) => {
@@ -117,10 +132,11 @@ test('API Client loads benchmark data', async () => {
 
   try {
     const res = await api.getLatestBenchmark();
+    assert.ok(res);
     assert.strictEqual(res.dataset_version, 'v1.0.0');
-    assert.strictEqual(res.metrics.finding_level.precision, 1.0);
-    assert.strictEqual(res.metrics.case_level.true_negatives, 4);
-    assert.strictEqual(res.reproducible, true);
+    assert.strictEqual(res.metrics.precision, 1.0);
+    assert.strictEqual(res.metrics.tn, 10);
+    assert.strictEqual(res.metrics.passed_cases, 20);
   } finally {
     globalThis.fetch = originalFetch;
   }
