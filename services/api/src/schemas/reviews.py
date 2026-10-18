@@ -19,9 +19,11 @@ class ReviewStatus(str, Enum):
 class ReviewSubmissionRequest(BaseModel):
     repository_url: HttpUrl = Field(
         ...,
-        description="Public GitHub repository URL (e.g. https://github.com/owner/repo)",
+        description="Public GitHub repository URL (e.g. https://github.com/owner/repo or https://github.com/owner/repo/pull/123)",
     )
-    pull_request_number: int = Field(..., ge=1, description="GitHub pull request number")
+    pull_request_number: Optional[int] = Field(
+        default=None, ge=1, description="GitHub pull request number (optional if included in PR URL)"
+    )
 
 
 class ReviewSummary(BaseModel):

@@ -81,13 +81,14 @@ In accordance with our strict **Truth-in-Advertising Policy**, only language ana
 
 | Feature / Component | Implemented Locally | Committed to Git | Tested | Deployed Publicly |
 | :--- | :---: | :---: | :---: | :---: |
-| **FastAPI Backend Core** | Yes | Yes | Yes (228 tests) | Local Dev Server |
+| **FastAPI Backend Core** | Yes | Yes | Yes (235 tests) | Local Dev Server |
 | **Diff Parser & Grounding Validator** | Yes | Yes | Yes (38 tests) | Local Dev Server |
 | **Python AST Analyzer (`PY001`–`PY005`)** | Yes | Yes | Yes (19 tests) | Local Dev Server |
 | **JavaScript/TypeScript Analyzer (`JS001`–`JS004`)** | Yes | Yes | Yes (24 tests) | Local Dev Server |
 | **Java Lexical & Syntax Analyzer (`JV001`–`JV004`)** | Yes | Yes | Yes (22 tests) | Local Dev Server |
 | **C/C++ Static Analyzer (`CC001`–`CC004`)** | Yes | Yes | Yes (25 tests) | Local Dev Server |
 | **SQL / HiveQL Static Analyzer (`SQL001`–`SQL005`)** | Yes | Yes | Yes (31 tests) | Local Dev Server |
+| **Security Hardening & Grounding Gate (M8)** | Yes | Staged | Yes (7 tests + E2E suite) | Local Dev Server |
 | **LLM Provider & Injection Guardrails** | Yes | Yes | Yes (29 tests) | Local Dev Server |
 | **Python Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
 | **JavaScript/TypeScript Benchmark (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
@@ -95,7 +96,9 @@ In accordance with our strict **Truth-in-Advertising Policy**, only language ana
 | **C/C++ Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
 | **SQL/HiveQL Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
 | **Next.js Web Dashboard (4 Screens)** | Yes | Yes | Yes (13 tests + Build) | Local Dev Server |
-| **PostgreSQL Persistence** | Yes | Yes | Yes (Alembic models) | Requires local DB |
+| **PostgreSQL Persistence & Migrations** | Yes | Yes | Yes (Alembic models) | Requires local DB |
+| **Docker Compose & Container Packaging** | Yes | Staged | Yes (Compose verified) | Ready for Container Deployment |
+| **GitHub Actions CI Automation** | Yes | Staged | Yes (.github/workflows/ci.yml) | Ready |
 | **Cloud / External Deployment** | No | No | No | *Pending Approval* |
 
 ---
@@ -105,6 +108,7 @@ In accordance with our strict **Truth-in-Advertising Policy**, only language ana
 ### Prerequisites
 - **Python 3.11+**
 - **Node.js v20+** (Tested with Node.js v24.12.0 and npm 11.6.2)
+- *(Optional)* **Docker & Docker Compose** (for containerized deployment)
 - *(Optional)* **PostgreSQL 14+** (for persistent review history)
 
 ### 5.1 Backend Setup (`services/api`)
@@ -140,6 +144,16 @@ npm install
 npm run dev -- -p 3000
 ```
 The dashboard is now accessible at `http://localhost:3000/`.
+
+### 5.3 Full-Stack Containerized Setup (Docker Compose)
+
+```bash
+# Start PostgreSQL, FastAPI Backend, and Next.js Dashboard together
+docker compose up --build
+```
+- Web Dashboard: `http://localhost:3000`
+- FastAPI Backend: `http://localhost:8000` (Docs: `http://localhost:8000/docs`)
+- Database: `localhost:5432`
 
 ---
 

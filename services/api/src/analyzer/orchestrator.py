@@ -194,6 +194,24 @@ class AnalysisOrchestrator:
             seen_fingerprints.add(ai_fp)
             combined_candidates.append(ai_cand)
 
+        # Step 5b: Defense-in-depth Grounding Validation at Pipeline Boundary
+        from ..validator.grounding import LineGroundingValidator
+        pipeline_validator = LineGroundingValidator(parsed_diff)
+        validated_candidates = []
+        for cand in combined_candidates:
+            val_res = pipeline_validator.validate_finding(
+                cand,
+                require_changed_line=True,
+                allow_file_level=(cand.start_line is None and cand.end_line is None),
+            )
+            if val_res.is_valid:
+                validated_candidates.append(cand)
+            else:
+                import logging
+                logging.getLogger("patchwise.orchestrator").warning(
+                    f"Discarded ungrounded candidate at pipeline boundary: {cand.file_path}:{cand.start_line} - {val_res.rejection_reason}"
+                )
+
         # Step 6: Persist findings to database
         finding_reads: List[FindingRead] = []
         created_at_now = datetime.now(timezone.utc)
@@ -205,7 +223,7 @@ class AnalysisOrchestrator:
             ai_error_sanitized=ai_error_sanitized,
         )
 
-        for cand in combined_candidates:
+        for cand in validated_candidates:
             fp_data = f"{cand.rule_id}:{cand.file_path}:{cand.start_line}:{cand.end_line}:{cand.title}"
             fingerprint = hashlib.sha256(fp_data.encode("utf-8")).hexdigest()
 

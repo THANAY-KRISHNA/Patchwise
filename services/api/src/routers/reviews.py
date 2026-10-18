@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..analyzer.orchestrator import AnalysisOrchestrator
 from ..core.errors import ErrorCode, PatchwiseAPIException
+from ..core.security import verify_api_key
 from ..db.models import Feedback, Finding, Review
 from ..db.session import get_db
 from ..github.client import GitHubClient, parse_github_repo_and_number
@@ -47,6 +48,7 @@ async def create_pull_request_review(
     payload: ReviewSubmissionRequest,
     db: AsyncSession = Depends(get_db),
     github_client: GitHubClient = Depends(get_github_client),
+    _auth: None = Depends(verify_api_key),
 ):
     """
     Initiate and execute a pull request review.
@@ -218,6 +220,7 @@ async def submit_finding_feedback(
     finding_id: uuid.UUID,
     payload: FeedbackCreate,
     db: AsyncSession = Depends(get_db),
+    _auth: None = Depends(verify_api_key),
 ):
     """Record reviewer feedback (useful, incorrect, irrelevant) on a finding."""
     f_res = await db.execute(
@@ -246,6 +249,7 @@ async def submit_finding_feedback(
 async def inspect_pull_request_diff(
     payload: ReviewSubmissionRequest,
     github_client: GitHubClient = Depends(get_github_client),
+    _auth: None = Depends(verify_api_key),
 ):
     """
     Fetch and parse pull request diffs without executing analysis rules.

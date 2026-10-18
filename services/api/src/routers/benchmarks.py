@@ -6,6 +6,7 @@ from fastapi import APIRouter
 router = APIRouter(prefix="/benchmarks", tags=["Evaluation Benchmark"])
 
 
+@router.get("")
 @router.get("/latest")
 async def get_latest_benchmark_summary(dataset: str = "python"):
     """

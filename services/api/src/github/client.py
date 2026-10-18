@@ -9,15 +9,30 @@ from .models import GitHubChangedFile, GitHubPullRequest, GitHubRateLimit
 
 logger = logging.getLogger("patchwise.github")
 
-# Strict URL pattern allowlisting only public github.com PR URLs
+# Strict URL pattern allowlisting only secure public HTTPS github.com PR URLs
 GITHUB_PR_URL_REGEX = re.compile(
-    r"^https?://github\.com/([a-zA-Z0-9_\-\.]+)/([a-zA-Z0-9_\-\.]+)/pull/(\d+)/?$"
+    r"^https://github\.com/([a-zA-Z0-9_\-\.]+)/([a-zA-Z0-9_\-\.]+)/pull/(\d+)/?$"
 )
-
 
 GITHUB_REPO_URL_REGEX = re.compile(
-    r"^https?://github\.com/([a-zA-Z0-9_\-\.]+)/([a-zA-Z0-9_\-\.]+)/?$"
+    r"^https://github\.com/([a-zA-Z0-9_\-\.]+)/([a-zA-Z0-9_\-\.]+)/?$"
 )
+
+
+def _validate_owner_repo(owner: str, repo: str) -> None:
+    """Validate that repository owner and name do not contain directory traversal or dot sequences."""
+    if owner in (".", "..") or repo in (".", "..") or ".." in owner or ".." in repo:
+        raise PatchwiseAPIException(
+            status_code=400,
+            error_code=ErrorCode.INVALID_REPOSITORY_URL,
+            message=f"Invalid repository specification '{owner}/{repo}' containing illegal path traversal sequences.",
+        )
+    if owner.startswith(("-", ".")) or owner.endswith(("-", ".")) or repo.startswith("."):
+        raise PatchwiseAPIException(
+            status_code=400,
+            error_code=ErrorCode.INVALID_REPOSITORY_URL,
+            message=f"Invalid repository specification '{owner}/{repo}'.",
+        )
 
 
 def parse_github_repo_and_number(
@@ -25,28 +40,79 @@ def parse_github_repo_and_number(
 ) -> Tuple[str, str, int]:
     """
     Safely parse and normalize GitHub owner, repo, and PR number.
-    Accepts full PR URL, repo URL with separate pr_number, or 'owner/repo' with pr_number.
-    Rejects malformed input, internal IPs, and non-GitHub hosts cleanly.
+    Accepts full HTTPS PR URL, HTTPS repo URL with separate pr_number, or 'owner/repo' with pr_number.
+    Rejects malformed input, internal IPs, insecure HTTP, and non-GitHub hosts cleanly.
     """
     clean_input = url_or_repo.strip()
+
+    # Reject user credentials in URLs (e.g. https://user:pass@github.com)
+    if "@" in clean_input:
+        raise PatchwiseAPIException(
+            status_code=400,
+            error_code=ErrorCode.INVALID_REPOSITORY_URL,
+            message="Embedded user credentials in repository URLs are prohibited.",
+        )
+
+    # Reject query parameters and fragments
+    if "?" in clean_input or "#" in clean_input:
+        raise PatchwiseAPIException(
+            status_code=400,
+            error_code=ErrorCode.INVALID_REPOSITORY_URL,
+            message="Repository URLs must not contain query parameters or fragments.",
+        )
+
+    # Reject encoded path traversal sequences or backslashes
+    lower_input = clean_input.lower()
+    if "%2e" in lower_input or "%2f" in lower_input or "%5c" in lower_input or "\\" in clean_input:
+        raise PatchwiseAPIException(
+            status_code=400,
+            error_code=ErrorCode.INVALID_REPOSITORY_URL,
+            message="Illegal URL-encoded characters or backslashes detected.",
+        )
+
+    # Reject cleartext HTTP for secure transmission
+    if clean_input.lower().startswith("http://"):
+        raise PatchwiseAPIException(
+            status_code=400,
+            error_code=ErrorCode.INVALID_REPOSITORY_URL,
+            message=f"Insecure HTTP repository URL '{clean_input}' is prohibited. Only secure HTTPS URLs (https://github.com/...) are supported.",
+        )
+
+    # Reject any non-GitHub URL scheme
+    if "://" in clean_input and not clean_input.startswith("https://github.com/"):
+        raise PatchwiseAPIException(
+            status_code=400,
+            error_code=ErrorCode.INVALID_REPOSITORY_URL,
+            message=f"Unsupported repository host or scheme in '{clean_input}'. Only 'https://github.com/...' is supported.",
+        )
 
     # Check full PR URL (https://github.com/owner/repo/pull/123)
     match_pr = GITHUB_PR_URL_REGEX.match(clean_input)
     if match_pr:
         owner, repo, number_str = match_pr.groups()
-        return owner, repo, int(number_str)
+        _validate_owner_repo(owner, repo)
+        pr_num = int(number_str)
+        if pr_num < 1:
+            raise PatchwiseAPIException(
+                status_code=400,
+                error_code=ErrorCode.INVALID_REPOSITORY_URL,
+                message=f"Invalid pull request number: {pr_num}. Must be >= 1.",
+            )
+        return owner, repo, pr_num
 
     # Check repository URL with separate pr_number (https://github.com/owner/repo)
     if pr_number is not None and pr_number >= 1:
         match_repo = GITHUB_REPO_URL_REGEX.match(clean_input)
         if match_repo:
             owner, repo = match_repo.groups()
+            _validate_owner_repo(owner, repo)
             return owner, repo, pr_number
 
         # Check owner/repo format (e.g. 'owner/repo')
         parts = clean_input.split("/")
         if len(parts) == 2 and parts[0] and parts[1]:
             if re.match(r"^[a-zA-Z0-9_\-\.]+$", parts[0]) and re.match(r"^[a-zA-Z0-9_\-\.]+$", parts[1]):
+                _validate_owner_repo(parts[0], parts[1])
                 return parts[0], parts[1], pr_number
 
     raise PatchwiseAPIException(
@@ -155,7 +221,7 @@ class GitHubClient:
                     method=method, url=url, headers=headers, params=params, timeout=self.timeout
                 )
             else:
-                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                async with httpx.AsyncClient(timeout=self.timeout, follow_redirects=False) as client:
                     response = await client.request(
                         method=method, url=url, headers=headers, params=params
                     )
@@ -166,12 +232,23 @@ class GitHubClient:
                 message="GitHub API request timed out.",
             )
         except httpx.RequestError as exc:
-            logger.error("GitHub request failed: %s", str(exc))
+            from ..core.errors import sanitize_secret_text
+            logger.error("GitHub request failed: %s", sanitize_secret_text(str(exc)))
             raise PatchwiseAPIException(
                 status_code=502,
                 error_code=ErrorCode.INTERNAL_ERROR,
                 message="Failed to establish connection to GitHub API.",
             )
+
+        # Validate redirects to prevent SSRF and token leakage to third parties
+        if response.is_redirect:
+            redirect_target = response.headers.get("location", "")
+            if not redirect_target.startswith("https://api.github.com/"):
+                raise PatchwiseAPIException(
+                    status_code=502,
+                    error_code=ErrorCode.INTERNAL_ERROR,
+                    message="Refusing redirect from GitHub API to an untrusted external host or non-HTTPS location.",
+                )
 
         if not response.is_success:
             self._handle_error_response(response, context=f"{method} {path}")

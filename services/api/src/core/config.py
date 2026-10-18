@@ -45,7 +45,17 @@ class Settings(BaseSettings):
     LLM_API_KEY: Optional[str] = None
     LLM_MODEL: Optional[str] = None
 
-    # Security & CORS Settings
+    # Security & Authentication Settings
+    API_SECRET_KEY: Optional[str] = Field(
+        default=None,
+        description="Optional API secret key to protect mutating endpoints. When set, requests require X-API-Key or Bearer token."
+    )
+    MAX_REQUEST_BODY_BYTES: int = Field(
+        default=2 * 1024 * 1024,
+        description="Maximum allowed incoming HTTP request payload size in bytes (default 2MB)."
+    )
+
+    # CORS Settings
     CORS_ORIGINS: Union[List[str], str] = Field(
         default=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"],
         description="Allowed origins for CORS."
