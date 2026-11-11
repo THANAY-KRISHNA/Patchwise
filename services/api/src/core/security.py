@@ -39,7 +39,7 @@ async def verify_api_key(
         if is_prod:
             raise PatchwiseAPIException(
                 status_code=401,
-                error_code=ErrorCode.INTERNAL_ERROR,
+                error_code=ErrorCode.AUTHENTICATION_REQUIRED,
                 message="Unauthorized: Authentication is required. API_SECRET_KEY must be configured on the server in production mode.",
             )
         # Development / testing convenience: allow unauthenticated requests
@@ -52,10 +52,17 @@ async def verify_api_key(
     elif authorization and authorization.lower().startswith("bearer "):
         supplied_key = authorization[7:].strip()
 
-    # Validate against configured key using constant-time comparison
-    if not supplied_key or not secrets.compare_digest(supplied_key, configured_key.strip()):
+    if not supplied_key:
         raise PatchwiseAPIException(
             status_code=401,
-            error_code=ErrorCode.INTERNAL_ERROR,
-            message="Unauthorized: Missing or invalid API authentication key.",
+            error_code=ErrorCode.AUTHENTICATION_REQUIRED,
+            message="Unauthorized: Missing API authentication key. Provide X-API-Key or Authorization Bearer header.",
+        )
+
+    # Validate against configured key using constant-time comparison
+    if not secrets.compare_digest(supplied_key, configured_key.strip()):
+        raise PatchwiseAPIException(
+            status_code=401,
+            error_code=ErrorCode.INVALID_API_KEY,
+            message="Unauthorized: Invalid API authentication key.",
         )

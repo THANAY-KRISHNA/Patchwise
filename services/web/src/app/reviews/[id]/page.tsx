@@ -10,6 +10,10 @@ import {
   Filter,
   AlertTriangle,
   RefreshCw,
+  Shield,
+  Sparkles,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { api } from '../../../lib/api';
@@ -30,6 +34,7 @@ function ReviewDetailContent() {
   const [diffData, setDiffData] = useState<DiffInspectionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedSha, setCopiedSha] = useState(false);
 
   // Filters
   const [selectedSeverity, setSelectedSeverity] = useState<string>('all');
@@ -82,12 +87,18 @@ function ReviewDetailContent() {
     };
   }, [reviewId]);
 
+  const handleCopySha = (sha: string) => {
+    navigator.clipboard.writeText(sha);
+    setCopiedSha(true);
+    setTimeout(() => setCopiedSha(false), 2000);
+  };
+
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-xs text-[#8b949e]">
-        <RefreshCw className="mx-auto h-6 w-6 animate-spin text-blue-400 mb-3" />
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center text-xs text-[#949da8] font-mono">
+        <RefreshCw className="mx-auto h-6 w-6 animate-spin text-amber-400 mb-3" />
         <p className="text-sm font-medium text-white">Loading review inspector...</p>
-        <p className="text-[#6e7681] mt-1">Retrieving diff hunks, AST findings, and provenance tags</p>
+        <p className="text-[#656e7b] mt-1">Retrieving diff hunks, AST findings, and provenance tags</p>
       </div>
     );
   }
@@ -96,21 +107,23 @@ function ReviewDetailContent() {
     return (
       <div className="mx-auto max-w-4xl px-4 py-16 text-center">
         <AlertTriangle className="mx-auto h-8 w-8 text-red-400 mb-3" />
-        <h2 className="text-base font-bold text-white mb-2">Review Not Found or Unavailable</h2>
-        <p className="text-xs text-[#8b949e] mb-6">{error || 'Unable to retrieve review record.'}</p>
-        <Link
-          href="/reviews"
-          className="inline-flex items-center gap-1.5 rounded-md border border-[#262c36] bg-[#14171d] px-4 py-2 text-xs font-medium text-white hover:bg-[#1e232b] transition"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Reviews
-        </Link>
-        <Link
-          href="/reviews/demo"
-          className="inline-flex items-center gap-1.5 rounded-md border border-blue-500/30 bg-blue-950/20 px-4 py-2 text-xs font-medium text-blue-400 hover:bg-blue-900/30 transition ml-3"
-        >
-          View Demo PR Inspector
-        </Link>
+        <h2 className="text-base font-semibold text-white mb-2 font-mono">Review Not Found or Unavailable</h2>
+        <p className="text-xs text-[#949da8] mb-6 font-mono">{error || 'Unable to retrieve review record.'}</p>
+        <div className="flex items-center justify-center gap-3">
+          <Link
+            href="/reviews"
+            className="inline-flex items-center gap-1.5 rounded border border-[#1e222b] bg-[#101217] px-4 py-2 font-mono text-xs font-medium text-white hover:bg-[#161820] transition"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>Back to Reviews</span>
+          </Link>
+          <Link
+            href="/reviews/demo"
+            className="inline-flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-4 py-2 font-mono text-xs font-medium text-amber-400 hover:bg-amber-500/20 transition"
+          >
+            <span>View Demo PR Inspector</span>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -123,7 +136,6 @@ function ReviewDetailContent() {
     return matchSev && matchProv && matchFile;
   });
 
-  // Extract unique file paths across findings and diff files
   const allFilePaths = Array.from(
     new Set([
       ...(diffData?.files.map((df) => df.file_path) || []),
@@ -131,7 +143,6 @@ function ReviewDetailContent() {
     ])
   );
 
-  // If diffData has files, use them. Otherwise synthesize basic representation so findings can render!
   const effectiveFiles: ParsedFileDiff[] =
     diffData && diffData.files.length > 0
       ? diffData.files.filter((df) => selectedFile === 'all' || df.file_path === selectedFile)
@@ -176,9 +187,9 @@ function ReviewDetailContent() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       {review.id === 'demo' && (
-        <div className="mb-4 rounded-md border border-amber-500/30 bg-amber-950/20 px-4 py-2.5 text-xs text-amber-300 flex items-center justify-between">
+        <div className="mb-4 rounded border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-300 flex items-center justify-between font-mono">
           <div className="flex items-center gap-2">
-            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-amber-400">
+            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-400">
               DEMO FIXTURE
             </span>
             <span>
@@ -189,46 +200,51 @@ function ReviewDetailContent() {
       )}
 
       {/* Top Breadcrumb & Actions */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4 font-mono">
         <Link
           href="/reviews"
-          className="inline-flex items-center gap-1.5 text-xs text-[#8b949e] hover:text-white transition"
+          className="inline-flex items-center gap-1.5 text-xs text-[#949da8] hover:text-white transition"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          Back to all reviews
+          <span>Back to Pull Requests</span>
         </Link>
 
         <div className="flex items-center gap-2">
           <ReviewStatusBadge status={review.status} />
-          <span className="font-mono text-xs text-[#6e7681]">
+          <span className="text-xs text-[#656e7b]">
             ID: {review.id.slice(0, 8)}...
           </span>
         </div>
       </div>
 
       {/* PR Header Box */}
-      <div className="rounded-lg border border-[#262c36] bg-[#14171d] p-5 mb-6">
+      <div className="rounded border border-[#1e222b] bg-[#101217] p-5 mb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <GitPullRequest className="h-4 w-4 text-blue-400" />
-              <h1 className="text-lg font-bold text-white">
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              <GitPullRequest className="h-4 w-4 text-amber-400" />
+              <h1 className="text-base font-semibold text-white font-mono sm:text-lg">
                 {review.repository} #{review.pr_number}
               </h1>
               {review.commit_sha && (
-                <span className="rounded bg-[#1e232b] px-2 py-0.5 font-mono text-[11px] text-[#8b949e] border border-[#2d3440]">
-                  {review.commit_sha.slice(0, 7)}
-                </span>
+                <button
+                  onClick={() => handleCopySha(review.commit_sha!)}
+                  className="inline-flex items-center gap-1 rounded bg-[#161820] px-2 py-0.5 font-mono text-[11px] text-[#949da8] border border-[#262c37] hover:text-white transition"
+                  title="Click to copy commit SHA"
+                >
+                  <span>{review.commit_sha.slice(0, 7)}</span>
+                  {copiedSha ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                </button>
               )}
             </div>
-            <p className="text-xs text-[#8b949e]">
+            <p className="text-xs text-[#949da8]">
               {review.pr_title || 'No pull request description provided.'}
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#8b949e]">
+          <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-[#949da8]">
             <div className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5 text-[#6e7681]" />
+              <Clock className="h-3.5 w-3.5 text-[#656e7b]" />
               <span>{review.duration_ms ? `${review.duration_ms} ms` : '—'}</span>
             </div>
             <div>
@@ -240,38 +256,40 @@ function ReviewDetailContent() {
           </div>
         </div>
 
-        {/* Summary Badges Row */}
-        <div className="mt-4 pt-4 border-t border-[#20252e] flex flex-wrap items-center justify-between gap-3 text-xs">
+        {/* Provenance & Severity Metrics Strip */}
+        <div className="mt-4 pt-4 border-t border-[#1e222b] flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-[#8b949e]">Findings Breakdown:</span>
-            <span className="font-mono text-emerald-400 font-medium">
-              {review.summary?.deterministic_count || 0} Deterministic
+            <span className="text-[#656e7b]">Findings:</span>
+            <span className="flex items-center gap-1 text-emerald-400 font-medium">
+              <Shield className="h-3 w-3" />
+              <span>{review.summary?.deterministic_count || 0} Deterministic</span>
             </span>
             <span className="text-[#484f58]">•</span>
-            <span className="font-mono text-purple-400 font-medium">
-              {review.summary?.ai_hypothesis_count || 0} AI Hypotheses
+            <span className="flex items-center gap-1 text-purple-400 font-medium">
+              <Sparkles className="h-3 w-3" />
+              <span>{review.summary?.ai_hypothesis_count || 0} AI Hypotheses (unverified)</span>
             </span>
             <span className="text-[#484f58]">•</span>
-            <span className="font-mono text-red-400 font-medium">
+            <span className="text-red-400 font-medium">
               {review.summary?.critical_count || 0} Critical
             </span>
             <span className="text-[#484f58]">•</span>
-            <span className="font-mono text-orange-400 font-medium">
+            <span className="text-orange-400 font-medium">
               {review.summary?.high_count || 0} High
             </span>
           </div>
 
-          <div className="text-[11px] text-[#6e7681]">
+          <div className="text-[11px] text-[#656e7b]">
             100% Line Grounded • Zero Untrusted Code Executed
           </div>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="rounded-lg border border-[#262c36] bg-[#14171d] p-3.5 mb-6 flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="rounded border border-[#1e222b] bg-[#101217] p-3.5 mb-6 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 text-[#8b949e]">
-            <Filter className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5 text-[#949da8]">
+            <Filter className="h-3.5 w-3.5 text-amber-400" />
             <span>Filter Findings:</span>
           </div>
 
@@ -279,7 +297,7 @@ function ReviewDetailContent() {
           <select
             value={selectedSeverity}
             onChange={(e) => setSelectedSeverity(e.target.value)}
-            className="rounded border border-[#262c36] bg-[#0d0f12] px-2.5 py-1 text-xs text-white focus:outline-none"
+            className="rounded border border-[#1e222b] bg-[#090a0d] px-2.5 py-1 text-xs text-white focus:border-amber-500 focus:outline-none"
           >
             <option value="all">All Severities</option>
             <option value="critical">Critical</option>
@@ -293,11 +311,11 @@ function ReviewDetailContent() {
           <select
             value={selectedProvenance}
             onChange={(e) => setSelectedProvenance(e.target.value)}
-            className="rounded border border-[#262c36] bg-[#0d0f12] px-2.5 py-1 text-xs text-white focus:outline-none"
+            className="rounded border border-[#1e222b] bg-[#090a0d] px-2.5 py-1 text-xs text-white focus:border-amber-500 focus:outline-none"
           >
             <option value="all">All Provenance Tiers</option>
             <option value="DETERMINISTIC_STATIC_ANALYSIS">Tier 1: Deterministic Static</option>
-            <option value="AI_GENERATED_HYPOTHESIS">Tier 2: AI Hypotheses</option>
+            <option value="AI_GENERATED_HYPOTHESIS">Tier 2: AI Hypotheses (Unverified)</option>
             <option value="VERIFIED_TEST_RESULT">Tier 3: Verified Test</option>
           </select>
 
@@ -305,7 +323,7 @@ function ReviewDetailContent() {
           <select
             value={selectedFile}
             onChange={(e) => setSelectedFile(e.target.value)}
-            className="rounded border border-[#262c36] bg-[#0d0f12] px-2.5 py-1 text-xs text-white focus:outline-none max-w-xs truncate"
+            className="rounded border border-[#1e222b] bg-[#090a0d] px-2.5 py-1 text-xs text-white focus:border-amber-500 focus:outline-none max-w-xs truncate"
           >
             <option value="all">All Files ({allFilePaths.length})</option>
             {allFilePaths.map((fp) => (
@@ -316,7 +334,7 @@ function ReviewDetailContent() {
           </select>
         </div>
 
-        <div className="text-[#8b949e] font-mono text-xs">
+        <div className="text-[#949da8] text-xs">
           Showing <span className="text-white font-semibold">{filteredFindings.length}</span> of{' '}
           {review.findings.length} findings
         </div>
@@ -324,8 +342,8 @@ function ReviewDetailContent() {
 
       {/* Main Review Body: Unified Diff & Anchored Findings */}
       <div className="space-y-6">
-        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-          <FileCode className="h-4 w-4 text-blue-400" />
+        <h2 className="text-xs font-semibold text-white flex items-center gap-2 font-mono">
+          <FileCode className="h-4 w-4 text-amber-400" />
           <span>Unified Diffs & Anchored Line Findings</span>
         </h2>
 
@@ -343,8 +361,8 @@ export default function ReviewDetailPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="mx-auto max-w-7xl px-4 py-16 text-center text-xs text-[#8b949e]">
-          <RefreshCw className="mx-auto h-6 w-6 animate-spin text-blue-400 mb-3" />
+        <div className="mx-auto max-w-7xl px-4 py-16 text-center text-xs text-[#949da8] font-mono">
+          <RefreshCw className="mx-auto h-6 w-6 animate-spin text-amber-400 mb-3" />
           <p className="text-sm font-medium text-white">Loading review inspector...</p>
         </div>
       }

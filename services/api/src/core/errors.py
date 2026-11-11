@@ -18,6 +18,9 @@ class ErrorCode(str, Enum):
     AI_PROVIDER_RESPONSE_TOO_LARGE = "AI_PROVIDER_RESPONSE_TOO_LARGE"
     AI_PROVIDER_TIMEOUT = "AI_PROVIDER_TIMEOUT"
     UNGROUNDED_FINDING = "UNGROUNDED_FINDING"
+    AUTHENTICATION_REQUIRED = "AUTHENTICATION_REQUIRED"
+    INVALID_API_KEY = "INVALID_API_KEY"
+    REQUEST_ENTITY_TOO_LARGE = "REQUEST_ENTITY_TOO_LARGE"
     DATABASE_ERROR = "DATABASE_ERROR"
     INTERNAL_ERROR = "INTERNAL_ERROR"
 
@@ -53,13 +56,20 @@ class PatchwiseAPIException(HTTPException):
 import re
 
 SENSITIVE_PATTERNS = [
-    re.compile(r"(sk-[a-zA-Z0-9_\-]{8,})", re.IGNORECASE),
+    re.compile(r"(github_pat_[a-zA-Z0-9_]{20,})", re.IGNORECASE),
     re.compile(r"(ghp_[a-zA-Z0-9]{20,})", re.IGNORECASE),
+    re.compile(r"(gh[ousr]_[a-zA-Z0-9]{20,})", re.IGNORECASE),
+    re.compile(r"(sk-ant-[a-zA-Z0-9_\-]{8,})", re.IGNORECASE),
+    re.compile(r"(sk-[a-zA-Z0-9_\-]{8,})", re.IGNORECASE),
+    re.compile(r"(AKIA[0-9A-Z]{16})", re.IGNORECASE),
     re.compile(r"(bearer\s+)([a-zA-Z0-9_\-\.]{8,})", re.IGNORECASE),
     re.compile(r"(key=)([a-zA-Z0-9_\-]{8,})", re.IGNORECASE),
     re.compile(r"(x-api-key['\":\s=]+)([a-zA-Z0-9_\-]{8,})", re.IGNORECASE),
     re.compile(r"(x-goog-api-key['\":\s=]+)([a-zA-Z0-9_\-]{8,})", re.IGNORECASE),
+    re.compile(r"(api[_-]?key['\":\s=]+)([a-zA-Z0-9_\-]{8,})", re.IGNORECASE),
 ]
+
+URI_PASSWORD_PATTERN = re.compile(r"://([^:]+):([^@]+)@")
 
 
 def sanitize_secret_text(text: str, secret: Optional[str] = None) -> str:
@@ -75,6 +85,18 @@ def sanitize_secret_text(text: str, secret: Optional[str] = None) -> str:
     # Redact explicitly provided secret
     if secret and len(secret) >= 4:
         sanitized = sanitized.replace(secret, "[REDACTED_SECRET]")
+
+    # Redact configured application secrets if available
+    try:
+        from .config import settings
+        for s in (settings.API_SECRET_KEY, settings.LLM_API_KEY, settings.GITHUB_TOKEN):
+            if s and len(s) >= 4:
+                sanitized = sanitized.replace(s, "[REDACTED_SECRET]")
+    except Exception:
+        pass
+
+    # Redact database connection URI passwords
+    sanitized = URI_PASSWORD_PATTERN.sub(r"://\1:[REDACTED_PASSWORD]@", sanitized)
 
     # Redact common token patterns
     for pattern in SENSITIVE_PATTERNS:

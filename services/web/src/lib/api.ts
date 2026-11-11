@@ -19,6 +19,37 @@ export const API_BASE_URL =
 
 const API_V1 = `${API_BASE_URL}/api/v1`;
 
+let memoryApiKey: string | null = null;
+
+export function getStoredApiKey(): string | null {
+  if (memoryApiKey) {
+    return memoryApiKey;
+  }
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      return localStorage.getItem('patchwise_api_key') || null;
+    } catch {
+      return null;
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_KEY || null;
+}
+
+export function setStoredApiKey(key: string | null): void {
+  memoryApiKey = key && key.trim() ? key.trim() : null;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      if (memoryApiKey) {
+        localStorage.setItem('patchwise_api_key', memoryApiKey);
+      } else {
+        localStorage.removeItem('patchwise_api_key');
+      }
+    } catch {
+      // Ignore storage errors in restricted contexts
+    }
+  }
+}
+
 export class ApiError extends Error {
   code?: string;
   statusCode: number;
@@ -41,14 +72,18 @@ async function request<T>(
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+  const apiKey = getStoredApiKey();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+    ...((options.headers as Record<string, string>) || {}),
+  };
+
   try {
     const res = await fetch(url, {
       ...options,
       signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-      },
+      headers,
     });
 
     clearTimeout(timeoutId);
@@ -179,5 +214,15 @@ export const api = {
     } catch {
       return null;
     }
+  },
+
+  /**
+   * Get or set stored API Key for authentication against production backend.
+   */
+  getApiKey(): string | null {
+    return getStoredApiKey();
+  },
+  setApiKey(key: string | null): void {
+    setStoredApiKey(key);
   },
 };

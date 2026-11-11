@@ -508,3 +508,102 @@ async def test_github_client_redirect_defense():
             await client.get_pull_request("owner", "repo", 1)
         assert exc.value.error_code == ErrorCode.INTERNAL_ERROR
         assert "refusing redirect" in exc.value.message.lower()
+
+
+def test_github_url_ssrf_ip_and_localhost_rejections():
+    """Verifies that IP addresses, localhost, and insecure/metadata base URLs are rejected."""
+    # Disallow IP addresses as owner or repo
+    with pytest.raises(PatchwiseAPIException) as exc:
+        parse_github_repo_and_number("127.0.0.1/my-repo", pr_number=1)
+    assert exc.value.error_code == ErrorCode.INVALID_REPOSITORY_URL
+    assert "ip addresses are prohibited" in exc.value.message.lower()
+
+    with pytest.raises(PatchwiseAPIException) as exc:
+        parse_github_repo_and_number("169.254.169.254/meta", pr_number=1)
+    assert exc.value.error_code == ErrorCode.INVALID_REPOSITORY_URL
+    assert "ip addresses are prohibited" in exc.value.message.lower()
+
+    # Disallow localhost
+    with pytest.raises(PatchwiseAPIException) as exc:
+        parse_github_repo_and_number("localhost/repo", pr_number=1)
+    assert exc.value.error_code == ErrorCode.INVALID_REPOSITORY_URL
+    assert "localhost is prohibited" in exc.value.message.lower()
+
+    # GitHubClient base_url SSRF protections
+    with pytest.raises(PatchwiseAPIException) as exc:
+        GitHubClient(base_url="http://api.github.com")
+    assert exc.value.error_code == ErrorCode.INVALID_REPOSITORY_URL
+    assert "only https is permitted" in exc.value.message.lower()
+
+    with pytest.raises(PatchwiseAPIException) as exc:
+        GitHubClient(base_url="https://localhost:8000")
+    assert exc.value.error_code == ErrorCode.INVALID_REPOSITORY_URL
+    assert "loopback and link-local" in exc.value.message.lower()
+
+    with pytest.raises(PatchwiseAPIException) as exc:
+        GitHubClient(base_url="https://127.0.0.1:8000")
+    assert exc.value.error_code == ErrorCode.INVALID_REPOSITORY_URL
+    assert "loopback and link-local" in exc.value.message.lower()
+
+    with pytest.raises(PatchwiseAPIException) as exc:
+        GitHubClient(base_url="https://169.254.169.254")
+    assert exc.value.error_code == ErrorCode.INVALID_REPOSITORY_URL
+    assert "loopback and link-local" in exc.value.message.lower()
+
+
+@pytest.mark.asyncio
+async def test_streaming_request_size_limit(client: AsyncClient):
+    """Verifies that streaming/chunked request payloads exceeding limit are rejected with HTTP 413."""
+    async def oversized_stream():
+        # Stream 3MB in 512KB chunks (exceeds default 2MB limit)
+        chunk = b"X" * (512 * 1024)
+        for _ in range(6):
+            yield chunk
+
+    res = await client.post(
+        "/api/v1/reviews",
+        content=oversized_stream(),
+        headers={"Content-Type": "application/octet-stream"},
+    )
+    assert res.status_code == 413
+    data = res.json()
+    assert data["error"]["code"] == "REQUEST_ENTITY_TOO_LARGE"
+    assert "exceeds allowed limit" in data["error"]["message"].lower()
+
+
+def test_secret_scrubbing_database_uri_and_extended_tokens():
+    """Verifies that database credentials, GitHub PATs, and cloud keys are scrubbed."""
+    from src.core.errors import sanitize_secret_text
+
+    raw_uri_msg = "Database error: connection to postgresql+asyncpg://app_user:super_secret_password123@db-host:5432/patchwise failed"
+    sanitized_uri = sanitize_secret_text(raw_uri_msg)
+    assert "super_secret_password123" not in sanitized_uri
+    assert "[REDACTED_PASSWORD]" in sanitized_uri
+
+    # GitHub fine-grained PAT
+    pat_msg = "Auth error with token github_pat_11ABCD1234_XYZ98765432100000000"
+    assert "github_pat_11ABCD1234_XYZ98765432100000000" not in sanitize_secret_text(pat_msg)
+
+    # Anthropic key
+    ant_msg = "Failed query with key sk-ant-api03-abcdef1234567890abcdef"
+    assert "sk-ant-api03-abcdef1234567890abcdef" not in sanitize_secret_text(ant_msg)
+
+    # AWS key
+    aws_msg = "Credentials: AKIAIOSFODNN7EXAMPLE"
+    assert "AKIAIOSFODNN7EXAMPLE" not in sanitize_secret_text(aws_msg)
+
+
+@pytest.mark.asyncio
+async def test_production_lifespan_insecure_key_warning(monkeypatch, caplog):
+    """Verifies that production lifespan startup logs a security warning for placeholder key."""
+    import logging
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(settings, "API_SECRET_KEY", "patchwise_secret_key_change_me_in_prod")
+
+    from src.main import lifespan
+
+    with caplog.at_level(logging.WARNING):
+        async with lifespan(app):
+            pass
+
+    assert any("placeholder api_secret_key" in record.message.lower() for record in caplog.records)

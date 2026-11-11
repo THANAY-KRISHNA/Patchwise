@@ -1,7 +1,8 @@
-"""Modular Async GitHub REST API Client."""
+import ipaddress
 import logging
 import re
 from typing import List, Optional, Tuple
+from urllib.parse import urlparse
 import httpx
 from ..core.config import settings
 from ..core.errors import ErrorCode, PatchwiseAPIException
@@ -33,6 +34,24 @@ def _validate_owner_repo(owner: str, repo: str) -> None:
             error_code=ErrorCode.INVALID_REPOSITORY_URL,
             message=f"Invalid repository specification '{owner}/{repo}'.",
         )
+
+    # Disallow localhost and raw IP addresses as owner or repository to prevent SSRF confusion
+    for part in (owner, repo):
+        if part.lower() == "localhost":
+            raise PatchwiseAPIException(
+                status_code=400,
+                error_code=ErrorCode.INVALID_REPOSITORY_URL,
+                message=f"Invalid repository specification '{owner}/{repo}': localhost is prohibited.",
+            )
+        try:
+            ipaddress.ip_address(part)
+            raise PatchwiseAPIException(
+                status_code=400,
+                error_code=ErrorCode.INVALID_REPOSITORY_URL,
+                message=f"Invalid repository specification '{owner}/{repo}': IP addresses are prohibited.",
+            )
+        except ValueError:
+            pass
 
 
 def parse_github_repo_and_number(
@@ -136,7 +155,23 @@ class GitHubClient:
         timeout: float = 15.0,
     ):
         self.token = token or settings.GITHUB_TOKEN
-        self.base_url = base_url.rstrip("/")
+        clean_base = base_url.rstrip("/")
+        parsed_base = urlparse(clean_base)
+        if parsed_base.scheme != "https":
+            raise PatchwiseAPIException(
+                status_code=400,
+                error_code=ErrorCode.INVALID_REPOSITORY_URL,
+                message=f"Insecure GitHub API base URL '{base_url}'. Only HTTPS is permitted.",
+            )
+        base_host = (parsed_base.hostname or "").lower()
+        if base_host in ("localhost", "127.0.0.1", "::1", "169.254.169.254") or base_host.startswith("127."):
+            raise PatchwiseAPIException(
+                status_code=400,
+                error_code=ErrorCode.INVALID_REPOSITORY_URL,
+                message=f"Illegal GitHub API host '{base_host}': Loopback and link-local metadata addresses are prohibited.",
+            )
+
+        self.base_url = clean_base
         self._custom_client = http_client
         self.timeout = timeout
         self.rate_limit_info: Optional[GitHubRateLimit] = None
@@ -243,7 +278,8 @@ class GitHubClient:
         # Validate redirects to prevent SSRF and token leakage to third parties
         if response.is_redirect:
             redirect_target = response.headers.get("location", "")
-            if not redirect_target.startswith("https://api.github.com/"):
+            parsed_loc = urlparse(redirect_target)
+            if parsed_loc.scheme != "https" or (parsed_loc.hostname or "").lower() != "api.github.com":
                 raise PatchwiseAPIException(
                     status_code=502,
                     error_code=ErrorCode.INTERNAL_ERROR,

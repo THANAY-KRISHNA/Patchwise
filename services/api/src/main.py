@@ -32,6 +32,16 @@ async def lifespan(app: FastAPI):
                 f"Security configuration error: API_SECRET_KEY must be configured when running in '{settings.ENVIRONMENT}'. "
                 "Refusing to start in an insecure fail-open state."
             )
+        if settings.API_SECRET_KEY.strip() in (
+            "patchwise_secret_key_change_me_in_prod",
+            "change_me",
+            "secret",
+            "password",
+        ):
+            logger.warning(
+                "SECURITY WARNING: Production runtime is using a default or placeholder API_SECRET_KEY. "
+                "Provision a strong, random key before public exposure."
+            )
 
     logger.info("Initializing Patchwise API service (%s)...", settings.ENVIRONMENT)
     logger.info("Configured LLM Provider: %s", settings.LLM_PROVIDER)
@@ -50,6 +60,7 @@ app = FastAPI(
 )
 
 from starlette.middleware.base import BaseHTTPMiddleware
+import traceback
 from .core.errors import ErrorCode, PatchwiseAPIException, sanitize_secret_text
 
 
@@ -80,7 +91,7 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                         status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                         content={
                             "error": {
-                                "code": "REQUEST_ENTITY_TOO_LARGE",
+                                "code": ErrorCode.REQUEST_ENTITY_TOO_LARGE.value,
                                 "message": f"Request payload size ({length_val} bytes) exceeds allowed limit ({self.max_bytes} bytes).",
                             }
                         },
@@ -95,11 +106,74 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
                         }
                     },
                 )
-        return await call_next(request)
+
+        # Streaming defense: count bytes chunk-by-chunk to defeat chunked transfer DoS
+        total_received = 0
+        size_exceeded = False
+        original_receive = request.receive
+
+        async def counting_receive():
+            nonlocal total_received, size_exceeded
+            message = await original_receive()
+            if message.get("type") == "http.request":
+                body_chunk = message.get("body", b"")
+                total_received += len(body_chunk)
+                if total_received > self.max_bytes:
+                    size_exceeded = True
+                    raise PatchwiseAPIException(
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                        error_code=ErrorCode.REQUEST_ENTITY_TOO_LARGE,
+                        message=f"Request payload size ({total_received} bytes) exceeds allowed limit ({self.max_bytes} bytes).",
+                    )
+            return message
+
+        request._receive = counting_receive
+        try:
+            response = await call_next(request)
+        except Exception:
+            if size_exceeded:
+                return JSONResponse(
+                    status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                    content={
+                        "error": {
+                            "code": ErrorCode.REQUEST_ENTITY_TOO_LARGE.value,
+                            "message": f"Request payload size ({total_received} bytes) exceeds allowed limit ({self.max_bytes} bytes).",
+                        }
+                    },
+                )
+            raise
+
+        if size_exceeded:
+            return JSONResponse(
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                content={
+                    "error": {
+                        "code": ErrorCode.REQUEST_ENTITY_TOO_LARGE.value,
+                        "message": f"Request payload size ({total_received} bytes) exceeds allowed limit ({self.max_bytes} bytes).",
+                    }
+                },
+            )
+
+        return response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Enforces standard defensive HTTP response security headers."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        if settings.ENVIRONMENT.lower() in ("production", "prod", "staging"):
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
 
 
 # Request size limiting middleware (defense against memory exhaustion/DoS)
 app.add_middleware(RequestSizeLimitMiddleware, max_bytes=settings.MAX_REQUEST_BODY_BYTES)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS Configuration: allow configured origins (e.g. localhost:3000), not wildcard *
 app.add_middleware(
@@ -141,7 +215,9 @@ async def patchwise_exception_handler(request: Request, exc: PatchwiseAPIExcepti
 @app.exception_handler(Exception)
 async def generic_exception_handler(request: Request, exc: Exception):
     sanitized_msg = sanitize_secret_text(str(exc))
-    logger.error("Unhandled server error: %s", sanitized_msg, exc_info=True)
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    sanitized_tb = sanitize_secret_text(tb)
+    logger.error("Unhandled server error: %s\n%s", sanitized_msg, sanitized_tb)
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={

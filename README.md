@@ -2,8 +2,8 @@
 
 > **Deterministic AST Analysis · Line-Grounded AI Hypotheses · Human-in-the-Loop Review Dashboard**
 
-[![Backend Tests](https://img.shields.io/badge/Backend%20Tests-228%20Passing-brightgreen?style=flat-square)](services/api/tests/)
-[![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-13%20Passing-brightgreen?style=flat-square)](services/web/tests/)
+[![Backend Tests](https://img.shields.io/badge/Backend%20Tests-253%20Passing-brightgreen?style=flat-square)](services/api/tests/)
+[![Frontend Tests](https://img.shields.io/badge/Frontend%20Tests-20%20Passing-brightgreen?style=flat-square)](services/web/tests/)
 [![Benchmark F1](https://img.shields.io/badge/Benchmark%20F1-1.0000%20(v1.0.0)-blue?style=flat-square)](benchmark/)
 [![Engine Version](https://img.shields.io/badge/Engine%20Version-v0.1.0-orange?style=flat-square)](#)
 [![Python Version](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](services/api/)
@@ -81,23 +81,24 @@ In accordance with our strict **Truth-in-Advertising Policy**, only language ana
 
 | Feature / Component | Implemented Locally | Committed to Git | Tested | Deployed Publicly |
 | :--- | :---: | :---: | :---: | :---: |
-| **FastAPI Backend Core** | Yes | Yes | Yes (235 tests) | Local Dev Server |
+| **FastAPI Backend Core** | Yes | Yes | Yes (253 tests) | Local Dev Server |
 | **Diff Parser & Grounding Validator** | Yes | Yes | Yes (38 tests) | Local Dev Server |
 | **Python AST Analyzer (`PY001`–`PY005`)** | Yes | Yes | Yes (19 tests) | Local Dev Server |
 | **JavaScript/TypeScript Analyzer (`JS001`–`JS004`)** | Yes | Yes | Yes (24 tests) | Local Dev Server |
 | **Java Lexical & Syntax Analyzer (`JV001`–`JV004`)** | Yes | Yes | Yes (22 tests) | Local Dev Server |
 | **C/C++ Static Analyzer (`CC001`–`CC004`)** | Yes | Yes | Yes (25 tests) | Local Dev Server |
 | **SQL / HiveQL Static Analyzer (`SQL001`–`SQL005`)** | Yes | Yes | Yes (31 tests) | Local Dev Server |
-| **Security Hardening & Grounding Gate (M8)** | Yes | Staged | Yes (7 tests + E2E suite) | Local Dev Server |
+| **Security Hardening & Grounding Gate (M8)** | Yes | Staged | Yes (19 tests + E2E suite) | Local Dev Server |
+| **End-to-End Beta Acceptance Suite (M9)** | Yes | Staged | Yes (6 backend + 6 frontend E2E) | Local Dev Server |
 | **LLM Provider & Injection Guardrails** | Yes | Yes | Yes (29 tests) | Local Dev Server |
 | **Python Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
 | **JavaScript/TypeScript Benchmark (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
 | **Java Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
 | **C/C++ Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
 | **SQL/HiveQL Benchmark Dataset (`v1.0.0`)** | Yes | Yes | Yes (20 fixtures, 100% pass) | Local Dev Server |
-| **Next.js Web Dashboard (4 Screens)** | Yes | Yes | Yes (13 tests + Build) | Local Dev Server |
-| **PostgreSQL Persistence & Migrations** | Yes | Yes | Yes (Alembic models) | Requires local DB |
-| **Docker Compose & Container Packaging** | Yes | Staged | Yes (Compose verified) | Ready for Container Deployment |
+| **Next.js Web Dashboard (4 Screens)** | Yes | Yes | Yes (20 tests + Build) | Local Dev Server |
+| **PostgreSQL Persistence & Migrations** | Yes | Yes | Yes (Alembic DDL verified) | Offline / Container |
+| **Docker Compose & Container Packaging** | Yes | Staged | Yes (Compose & Entrypoint verified) | Configured & Static Tested |
 | **GitHub Actions CI Automation** | Yes | Staged | Yes (.github/workflows/ci.yml) | Ready |
 | **Cloud / External Deployment** | No | No | No | *Pending Approval* |
 
@@ -106,10 +107,10 @@ In accordance with our strict **Truth-in-Advertising Policy**, only language ana
 ## 5. Getting Started & Setup
 
 ### Prerequisites
-- **Python 3.11+**
+- **Python 3.11+** (Tested on Python 3.11 and 3.13)
 - **Node.js v20+** (Tested with Node.js v24.12.0 and npm 11.6.2)
-- *(Optional)* **Docker & Docker Compose** (for containerized deployment)
-- *(Optional)* **PostgreSQL 14+** (for persistent review history)
+- *(Optional)* **Docker & Docker Compose** (for containerized full-stack deployment)
+- *(Optional)* **PostgreSQL 14+** (for persistent review history; read endpoints gracefully degrade when offline)
 
 ### 5.1 Backend Setup (`services/api`)
 
@@ -117,19 +118,32 @@ In accordance with our strict **Truth-in-Advertising Policy**, only language ana
 # 1. Navigate to backend directory
 cd services/api
 
-# 2. Activate virtual environment (Windows PowerShell)
+# 2. Create and activate virtual environment
+# Windows PowerShell:
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 
-# 3. Install dependencies
+# Linux / macOS:
+# python3 -m venv .venv
+# source .venv/bin/activate
+
+# 3. Install backend dependencies
 pip install -r requirements.txt
 
-# 4. Copy environment configuration
+# 4. Configure environment variables (DO NOT commit .env to version control)
 cp .env.example .env
 
-# 5. Start the FastAPI development server
+# 5. Initialize & migrate database schema
+# Option A: When local PostgreSQL is running on port 5432:
+python -m alembic upgrade head
+
+# Option B: Offline static DDL generation (no database connection required):
+python -m alembic upgrade head --sql
+
+# 6. Start the FastAPI development server
 python -m uvicorn src.main:app --host 127.0.0.1 --port 8000
 ```
-The backend API is now running at `http://127.0.0.1:8000` (Swagger docs: `http://127.0.0.1:8000/docs`).
+The backend API is now running at `http://127.0.0.1:8000` (Interactive docs available at `http://127.0.0.1:8000/docs` in development mode).
 
 ### 5.2 Frontend Setup (`services/web`)
 
@@ -140,20 +154,44 @@ cd services/web
 # 2. Install dependencies
 npm install
 
-# 3. Start the Next.js development server
+# 3. Configure optional environment variables
+# NEXT_PUBLIC_API_URL defaults to http://localhost:8000 if omitted
+
+# 4. Start the Next.js development server
 npm run dev -- -p 3000
 ```
-The dashboard is now accessible at `http://localhost:3000/`.
+The developer dashboard is now accessible at `http://localhost:3000/`.
 
 ### 5.3 Full-Stack Containerized Setup (Docker Compose)
 
 ```bash
-# Start PostgreSQL, FastAPI Backend, and Next.js Dashboard together
+# Requires an active Docker daemon (e.g. Docker Desktop running)
 docker compose up --build
 ```
 - Web Dashboard: `http://localhost:3000`
 - FastAPI Backend: `http://localhost:8000` (Docs: `http://localhost:8000/docs`)
 - Database: `localhost:5432`
+
+### 5.4 Troubleshooting & Error Diagnostics
+
+1. **`RuntimeError: Security configuration error: API_SECRET_KEY must be configured...`**
+   - **Cause:** Backend was started with `ENVIRONMENT=production` or `staging`, but `API_SECRET_KEY` was left blank or unset.
+   - **Resolution:** By design, Patchwise fails closed in production to prevent unauthenticated access. Export a secure random token (`API_SECRET_KEY=your_key`) or run with `ENVIRONMENT=development` for local testing.
+2. **`SECURITY WARNING: Production runtime is using a default or placeholder API_SECRET_KEY`**
+   - **Cause:** `API_SECRET_KEY` is set to a placeholder (e.g., `patchwise_secret_key_change_me_in_prod`).
+   - **Resolution:** Supply a high-entropy secret before exposing the service.
+3. **Database Unavailable / Read Endpoint Fallback (`DATABASE_ERROR`)**
+   - **Cause:** PostgreSQL is not running on port 5432.
+   - **Resolution:** Patchwise gracefully degrades: read endpoints (`GET /api/v1/reviews`) return empty review lists and the frontend displays an empty/demo state rather than crashing. To enable persistence, start PostgreSQL or run `docker compose up postgres`.
+4. **`HTTP 413 REQUEST_ENTITY_TOO_LARGE`**
+   - **Cause:** Request payload or diff exceeds the 2MB limit (`MAX_REQUEST_BODY_BYTES`).
+   - **Resolution:** Submit reviews for focused PRs or increase `MAX_REQUEST_BODY_BYTES` in `.env` if large diffs are intentionally expected.
+5. **`HTTP 400 INVALID_REPOSITORY_URL`**
+   - **Cause:** Insecure cleartext HTTP (`http://`), non-GitHub domains, loopback/IP addresses, or path-traversal sequences (`..`) in repository input.
+   - **Resolution:** Provide valid HTTPS GitHub URLs (e.g., `https://github.com/owner/repo/pull/123`).
+6. **Docker Daemon Connection Errors (`npipe:////./pipe/dockerDesktopLinuxEngine`)**
+   - **Cause:** Docker Desktop engine is not running on the Windows host.
+   - **Resolution:** Start Docker Desktop, or proceed with local native execution (Sections 5.1 & 5.2).
 
 ---
 
@@ -165,15 +203,18 @@ docker compose up --build
 cd services/api
 .\.venv\Scripts\pytest.exe -v
 ```
-**Actual Result:** `197 passed in 0.82s` (100% pass rate).
+**Actual Result:** `253 passed in 1.15s` (100% pass rate across 27 test files, including unit, integration, security hardening, and beta acceptance suites).
 
 ### 6.2 Run Frontend Quality Gates
 
 ```pwsh
 cd services/web
 
-# Run unit tests (Node.js native test runner: node --test)
+# Run unit and end-to-end acceptance tests (Node.js native test runner: node --test)
 npm test
+
+# Run TypeScript type check
+npx tsc --noEmit
 
 # Run ESLint
 npm run lint
@@ -182,7 +223,8 @@ npm run lint
 npm run build
 ```
 **Actual Results:**
-- `npm test`: 12/12 tests passed.
+- `npm test`: 20/20 tests passed (Exit code 0).
+- `npx tsc --noEmit`: 0 type errors (Exit code 0).
 - `npm run lint`: 0 errors, 0 warnings (Exit code 0).
 - `npm run build`: Compiled successfully with Turbopack (Exit code 0).
 
@@ -201,7 +243,7 @@ cd services/api
 - **Recall:** 1.0000 (Finding level)
 - **F1 Score:** 1.0000 (Finding level)
 - **False Positive Rate:** 0.0000 (Case level)
-- **Mean Latency per Fixture:** 5.71 ms (Median: 3.87 ms, p95: 4.74 ms)
+- **Mean Latency per Fixture:** 3.00 ms (Median: 2.05 ms, p95: 2.80 ms)
 
 #### 6.3.2 JavaScript & TypeScript Benchmark (`v1.0.0` Frozen Ground-Truth Dataset)
 
@@ -216,7 +258,7 @@ cd services/api
 - **Recall:** 1.0000 (Finding level)
 - **F1 Score:** 1.0000 (Finding level)
 - **False Positive Rate:** 0.0000 (Case level)
-- **Mean Latency per Fixture:** 5.45 ms (Median: 3.20 ms, p95: 4.89 ms)
+- **Mean Latency per Fixture:** 4.36 ms (Median: 3.56 ms, p95: 5.47 ms)
 
 #### 6.3.3 Java Benchmark (`v1.0.0` Frozen Ground-Truth Dataset)
 
@@ -231,7 +273,7 @@ cd services/api
 - **Recall:** 1.0000 (Finding level)
 - **F1 Score:** 1.0000 (Finding level)
 - **False Positive Rate:** 0.0000 (Case level)
-- **Mean Latency per Fixture:** 6.10 ms (Median: 3.89 ms, p95: 5.08 ms)
+- **Mean Latency per Fixture:** 2.83 ms (Median: 2.06 ms, p95: 3.04 ms)
 
 #### 6.3.4 C / C++ Benchmark (`v1.0.0` Frozen Ground-Truth Dataset)
 
@@ -246,7 +288,7 @@ cd services/api
 - **Recall:** 1.0000 (Finding level)
 - **F1 Score:** 1.0000 (Finding level)
 - **False Positive Rate:** 0.0000 (Case level)
-- **Mean Latency per Fixture:** 4.28 ms (Median: 2.01 ms, p95: 5.04 ms)
+- **Mean Latency per Fixture:** 2.91 ms (Median: 2.05 ms, p95: 4.53 ms)
 
 #### 6.3.5 SQL / HiveQL Benchmark (`v1.0.0` Frozen Ground-Truth Dataset)
 
@@ -261,7 +303,14 @@ cd services/api
 - **Recall:** 1.0000 (Finding level)
 - **F1 Score:** 1.0000 (Finding level)
 - **False Positive Rate:** 0.0000 (Case level)
-- **Mean Latency per Fixture:** 4.28 ms (Median: 1.85 ms, p95: 2.88 ms)
+- **Mean Latency per Fixture:** 3.02 ms (Median: 2.06 ms, p95: 2.79 ms)
+
+### 6.4 Dependency Vulnerability Audit
+
+- **Frontend Scanner:** `npm audit` (npm v11.6.2) on `services/web`
+  - **Production Dependencies (`npm audit --omit=dev`):** **0 vulnerabilities found**.
+  - **Development Dependencies:** 5 high-severity vulnerabilities in transitive linter dependency `braces` (via `eslint-config-next` -> `@next/eslint-plugin-next` -> `fast-glob` -> `micromatch` -> `braces`, GHSA-vfj7-8cjw-p6xm: stack exhaustion on deeply nested glob patterns). Note: this code executes strictly at build/lint time and is excluded from the client production bundle.
+- **Backend Scanner:** Pinned manifests in `services/api/requirements.txt` with vetted dependencies (FastAPI 0.143.0, SQLAlchemy 2.1.4, Pydantic 2.14.0, Pygments 2.21.0).
 
 ---
 
@@ -290,6 +339,7 @@ cd services/api
    - **Credential Masking:** Secret literals detected under `SQL004` are masked as `***` in evidence and descriptions to prevent leaking credentials into review logs or UI displays.
 8. **Zero Untrusted Code Execution:** Analyzed repository code and PR diffs are strictly parsed as text, lexical tokens, and ASTs. No database statements are executed, no connections to real databases are opened, and no user code is run on the application server.
 9. **Cloud Deployment:** In accordance with project safety guidelines, Patchwise has not been deployed to external cloud providers without explicit human confirmation.
+10. **Docker Runtime Verification Boundary:** Container manifests (`Dockerfile` for backend with entrypoint migrations, `Dockerfile` for frontend, `docker-compose.yml`, and healthchecks) have been statically validated (`docker compose config` passing). Live container runtime execution was not conducted during local candidate evaluation because the Docker Desktop engine was inactive on the host system. Live container orchestration requires an active Docker daemon.
 
 ---
 

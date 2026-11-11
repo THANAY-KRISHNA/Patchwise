@@ -62,12 +62,13 @@ export default function ReviewsListPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+      {/* Header */}
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+          <h1 className="text-xl font-semibold tracking-tight text-[#f0f3f6] sm:text-2xl font-mono">
             Pull Request Reviews
           </h1>
-          <p className="mt-1 text-xs text-[#8b949e]">
+          <p className="mt-1 text-xs text-[#949da8]">
             Browse all analyzed pull requests, inspect unified diffs, and review flagged findings.
           </p>
         </div>
@@ -75,36 +76,36 @@ export default function ReviewsListPage() {
         <button
           onClick={handleReload}
           disabled={loading}
-          className="flex items-center gap-1.5 rounded-md border border-[#262c36] bg-[#14171d] px-3 py-1.5 text-xs font-medium text-[#8b949e] hover:bg-[#1a1e26] hover:text-white transition disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded border border-[#1e222b] bg-[#101217] px-3 py-1.5 font-mono text-xs text-[#949da8] hover:bg-[#161820] hover:text-white transition disabled:opacity-50"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
         </button>
       </div>
 
       {/* Filter and Search Bar */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[240px]">
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#6e7681]" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-[#656e7b]" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search repository, PR title, or number..."
-            className="w-full rounded-md border border-[#262c36] bg-[#14171d] pl-9 pr-3 py-2 text-xs text-white placeholder-[#6e7681] focus:border-blue-500 focus:outline-none"
+            className="w-full rounded border border-[#1e222b] bg-[#101217] pl-9 pr-3 py-2 font-mono text-xs text-white placeholder-[#656e7b] focus:border-amber-500 focus:outline-none"
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter className="h-3.5 w-3.5 text-[#6e7681]" />
+        <div className="flex items-center gap-2 font-mono text-xs">
+          <Filter className="h-3.5 w-3.5 text-[#656e7b]" />
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-md border border-[#262c36] bg-[#14171d] px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
+            className="rounded border border-[#1e222b] bg-[#101217] px-3 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
           >
             <option value="all">All Statuses</option>
             <option value="completed">Completed</option>
-            <option value="in_progress">In Progress</option>
+            <option value="in_progress">Analyzing</option>
             <option value="failed">Failed</option>
             <option value="queued">Queued</option>
           </select>
@@ -112,34 +113,34 @@ export default function ReviewsListPage() {
       </div>
 
       {/* Reviews Table */}
-      <div className="rounded-lg border border-[#262c36] bg-[#14171d] overflow-hidden">
+      <div className="rounded border border-[#1e222b] bg-[#101217] overflow-hidden">
         {loading && (
-          <div className="p-12 text-center text-xs text-[#8b949e]">
-            <RefreshCw className="mx-auto h-5 w-5 animate-spin mb-2 text-blue-400" />
-            Loading reviews...
+          <div className="p-12 text-center text-xs text-[#949da8] font-mono">
+            <RefreshCw className="mx-auto h-5 w-5 animate-spin mb-2 text-amber-400" />
+            <span>Loading reviews from backend...</span>
           </div>
         )}
 
         {!loading && error && (
-          <div className="p-8 text-center text-xs text-red-400">
-            <AlertTriangle className="mx-auto h-6 w-6 mb-2" />
+          <div className="p-8 text-center text-xs text-red-400 font-mono">
+            <AlertTriangle className="mx-auto h-6 w-6 mb-2 text-red-400" />
             <p className="font-medium">{error}</p>
           </div>
         )}
 
         {!loading && !error && filteredReviews.length === 0 && (
-          <div className="p-12 text-center text-xs text-[#8b949e]">
-            <GitPullRequest className="mx-auto h-8 w-8 mb-2 text-[#484f58]" />
+          <div className="p-12 text-center text-xs text-[#949da8]">
+            <GitPullRequest className="mx-auto h-8 w-8 mb-2 text-[#656e7b]" />
             <p className="font-medium text-white text-sm">No matching reviews</p>
-            <p className="text-[#6e7681] mt-1 mb-4">
-              Database currently has no completed reviews recorded. You can inspect our full demo fixture to evaluate the diff inspector and feedback tools.
+            <p className="text-[#656e7b] mt-1 mb-4 max-w-sm mx-auto font-mono text-[11px]">
+              No matching records found. You can inspect the demo fixture to evaluate the diff inspector and feedback tools.
             </p>
             <Link
               href="/reviews/demo"
-              className="inline-flex items-center gap-1.5 rounded-md border border-blue-500/30 bg-blue-950/20 px-3.5 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-900/30 transition"
+              className="inline-flex items-center gap-1.5 rounded border border-amber-500/40 bg-amber-500/10 px-3.5 py-1.5 font-mono text-xs font-medium text-amber-400 hover:bg-amber-500/20 transition"
             >
               <span>Inspect Demo Pull Request (#42)</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
         )}
@@ -147,26 +148,25 @@ export default function ReviewsListPage() {
         {!loading && !error && filteredReviews.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-[#20252e] bg-[#101217] text-[11px] font-semibold text-[#8b949e]">
+              <thead className="border-b border-[#1e222b] bg-[#0c0e12] text-[11px] font-semibold text-[#949da8] font-mono">
                 <tr>
                   <th className="px-5 py-2.5">Repository & PR</th>
                   <th className="px-5 py-2.5">Status</th>
                   <th className="px-5 py-2.5">Findings</th>
-                  <th className="px-5 py-2.5">Engine</th>
-                  <th className="px-5 py-2.5">Duration</th>
-                  <th className="px-5 py-2.5">Timestamp</th>
+                  <th className="px-5 py-2.5">Latency</th>
+                  <th className="px-5 py-2.5">Started At</th>
                   <th className="px-5 py-2.5 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#1e232b]">
+              <tbody className="divide-y divide-[#1e222b]">
                 {filteredReviews.map((r) => (
-                  <tr key={r.id} className="hover:bg-[#181c24] transition">
+                  <tr key={r.id} className="hover:bg-[#14161f] transition">
                     <td className="px-5 py-3">
-                      <div className="font-medium text-white">
+                      <div className="font-mono font-medium text-white">
                         {r.repository} #{r.pr_number}
                       </div>
-                      <div className="text-[11px] text-[#6e7681] truncate max-w-sm">
-                        {r.pr_title || 'No PR description'}
+                      <div className="text-[11px] text-[#656e7b] truncate max-w-sm mt-0.5">
+                        {r.pr_title || 'No description provided'}
                       </div>
                     </td>
                     <td className="px-5 py-3">
@@ -178,25 +178,22 @@ export default function ReviewsListPage() {
                       </span>
                       {r.summary?.critical_count > 0 && (
                         <span className="ml-1 text-red-400 text-[10px]">
-                          ({r.summary.critical_count} critical)
+                          ({r.summary.critical_count} crit)
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3 font-mono text-[11px] text-[#8b949e]">
-                      {r.engine_version}
-                    </td>
-                    <td className="px-5 py-3 font-mono text-[11px] text-[#8b949e]">
+                    <td className="px-5 py-3 text-[#949da8] font-mono text-[11px]">
                       {r.duration_ms ? `${r.duration_ms} ms` : '—'}
                     </td>
-                    <td className="px-5 py-3 text-[#8b949e] text-[11px]">
+                    <td className="px-5 py-3 text-[#949da8] text-[11px] font-mono">
                       {new Date(r.started_at).toLocaleString()}
                     </td>
                     <td className="px-5 py-3 text-right">
                       <Link
                         href={`/reviews/${r.id}`}
-                        className="inline-flex items-center gap-1 rounded bg-blue-600/10 border border-blue-500/20 px-2.5 py-1 text-xs font-medium text-blue-400 hover:bg-blue-600/20 hover:text-blue-300 transition"
+                        className="inline-flex items-center gap-1 font-mono text-xs text-amber-400 hover:text-amber-300 transition"
                       >
-                        Inspect Diff
+                        <span>Inspect</span>
                         <ArrowRight className="h-3 w-3" />
                       </Link>
                     </td>

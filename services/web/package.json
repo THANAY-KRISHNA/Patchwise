@@ -7,11 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test tests/api_client.test.ts tests/grounding_and_provenance.test.ts"
+    "test": "node --experimental-strip-types --test tests/api_client.test.ts tests/grounding_and_provenance.test.ts tests/frontend_workstation_e2e.test.ts"
   },
   "dependencies": {
     "lucide-react": "^1.55.0",
-    "next": "16.4.0",
+    "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
@@ -21,8 +21,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.0",
+    "eslint-config-next": "16.4.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.6"
+    }
   }
 }

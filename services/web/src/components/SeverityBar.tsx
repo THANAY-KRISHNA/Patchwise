@@ -15,9 +15,9 @@ export const SeverityBar: React.FC<SeverityBarProps> = ({
   if (total === 0) {
     return (
       <div className="flex flex-col gap-1.5">
-        <div className="h-2 w-full rounded-full bg-[#1e232b]" />
+        <div className="h-1.5 w-full rounded bg-[#1e222b]" />
         {showLegend && (
-          <span className="text-xs text-[#6e7681]">Zero findings flagged</span>
+          <span className="text-xs text-[#656e7b] font-mono">Zero findings flagged</span>
         )}
       </div>
     );
@@ -31,7 +31,7 @@ export const SeverityBar: React.FC<SeverityBarProps> = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex h-2 w-full overflow-hidden rounded-full bg-[#1e232b]">
+      <div className="flex h-1.5 w-full overflow-hidden rounded bg-[#1e222b]">
         {critPct > 0 && (
           <div
             style={{ width: `${critPct}%` }}
@@ -70,7 +70,7 @@ export const SeverityBar: React.FC<SeverityBarProps> = ({
       </div>
 
       {showLegend && (
-        <div className="flex flex-wrap items-center gap-3 text-xs text-[#8b949e]">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-[#949da8] font-mono">
           {summary.critical_count > 0 && (
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-full bg-red-500" />

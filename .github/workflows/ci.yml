@@ -29,6 +29,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Validate Alembic Database Migrations (Static DDL)
+        run: python -m alembic upgrade head --sql
+
       - name: Run Backend Pytest Suite
         run: python -m pytest -v
 

@@ -4,15 +4,15 @@ services:
     container_name: patchwise-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: patchwise
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Error: POSTGRES_PASSWORD must be provided via environment variable or .env}
+      POSTGRES_DB: ${POSTGRES_DB:-patchwise}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d patchwise"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-patchwise}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,13 +27,19 @@ services:
       - "8000:8000"
     environment:
       ENVIRONMENT: production
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/patchwise
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-patchwise}}
       LLM_PROVIDER: none
-      API_SECRET_KEY: ${API_SECRET_KEY:-patchwise_secret_key_change_me_in_prod}
+      API_SECRET_KEY: ${API_SECRET_KEY:?Error: API_SECRET_KEY must be provided via environment variable or .env}
       CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   web:
     build:
@@ -46,7 +52,14 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data:

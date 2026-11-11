@@ -1,7 +1,7 @@
 # Patchwise: Architecture Specification, Requirements Checklist & Implementation Plan
 
 > **Specification Reference:** `docs/Patchwise_Project_Report.pdf` (21-page Flagship Project Blueprint)  
-> **Status:** Milestones 0–8 Completed & Verified; Ready for Milestone 7E (PySpark & Scala Language Plugin)
+> **Status:** Milestones 0–9 Completed & Verified (Beta Release Readiness Verified); Ready for Milestone 7E (PySpark & Scala Language Plugin)
 > **Target Stack:** Next.js (TypeScript) + FastAPI (Python 3.11+) + PostgreSQL + Docker
 
 ---
@@ -314,10 +314,10 @@ Patchwise/
 | **Milestone 6** | Next.js Frontend Dashboard (Overview, PR Review, Evaluation, Settings) | **COMPLETE** | 8 frontend tests (Node runner); 125 backend tests total |
 | **Milestone 7A** | JavaScript & TypeScript Analyzer (`JS001`–`JS004`, Benchmark `v1.0.0`) | **COMPLETE** | 24 backend tests (150 backend tests total); 10 frontend tests |
 | **Milestone 7B** | Java Static Analyzer (`JV001`–`JV004`, Benchmark `v1.0.0`) | **COMPLETE** | 22 backend tests (172 backend tests total); 11 frontend tests |
-| **Milestone 7C** | C / C++ Analyzer Plugin (`CP001`–`CP005`) | **PLANNED** | Next milestone |
-| **Milestone 7D** | SQL / HiveQL Analyzer Plugin (`SQ001`–`SQ005`) | **PLANNED** | Scheduled |
-| **Milestone 7E** | PySpark & Scala Analyzer Plugin (`SP001`–`SP005`) | **PLANNED** | Scheduled |
-| **Milestone 8** | System Hardening, E2E Integration & Demo Packaging | **PLANNED** | Final release milestone |
+| **Milestone 7C** | C / C++ Analyzer Plugin (`CC001`–`CC004`, Benchmark `v1.0.0`) | **COMPLETE** | 25 backend tests (197 backend tests total); 12 frontend tests |
+| **Milestone 7D** | SQL / HiveQL Analyzer Plugin (`SQL001`–`SQL005`, Benchmark `v1.0.0`) | **COMPLETE** | 31 backend tests (228 backend tests total); 13 frontend tests |
+| **Milestone 7E** | PySpark & Scala Analyzer Plugin (`SP001`–`SP005`) | **PLANNED** | Scheduled future roadmap |
+| **Milestone 8** | System Hardening, E2E Integration & Release Packaging | **COMPLETE** | 19 hardening tests (247 backend tests total); 14 frontend tests; 5/5 benchmarks verified |
 
 ---
 
@@ -710,11 +710,20 @@ To evaluate fixtures in offline deterministic mode and generate evaluation repor
 - [x] **Milestone 8: Hardening, E2E Integration & Release Packaging (Completed & Verified)**
   - [x] End-to-end multi-language pull request workflow testing across Python, TypeScript, Java, C++, and SQL in a single PR review.
   - [x] Defense-in-depth line-grounding validation gate enforced at orchestrator pipeline boundary before database persistence.
-  - [x] Security hardening: strict HTTPS enforcement, path-traversal prevention (`..`), and input sanitization on GitHub client.
-  - [x] Request payload size limiting middleware (`RequestSizeLimitMiddleware`, default 2MB) against HTTP memory exhaustion/DoS.
-  - [x] API key authentication support (`API_SECRET_KEY`) using constant-time comparison (`secrets.compare_digest`).
-  - [x] Sensitive credential scrubbing across unhandled exception handlers and logs.
-  - [x] Full-stack containerization (`Dockerfile` for FastAPI backend, `Dockerfile` for Next.js dashboard, `docker-compose.yml`).
-  - [x] Automated GitHub Actions continuous integration workflow (`.github/workflows/ci.yml`).
-  - [x] Comprehensive test suite (235 backend tests, 13 frontend tests, 100% passing across all 5 offline benchmarks).
+  - [x] Security hardening: strict HTTPS enforcement, IP address and localhost SSRF prevention, path-traversal prevention (`..`), and URL sanitization on GitHub client.
+  - [x] Request payload size limiting middleware (`RequestSizeLimitMiddleware`, default 2MB) with Content-Length pre-check and streaming chunk counter against HTTP memory exhaustion/DoS.
+  - [x] API key authentication support (`API_SECRET_KEY`) with production fail-closed enforcement and constant-time comparison (`secrets.compare_digest`).
+  - [x] Sensitive credential scrubbing across unhandled exception handlers, tracebacks, database URIs, GitHub PATs, and Anthropic/AWS keys.
+  - [x] Full-stack containerization (`Dockerfile` with automatic migration entrypoint for FastAPI, `Dockerfile` with healthcheck for Next.js, hardened `docker-compose.yml` with container healthchecks).
+  - [x] Database migrations verified offline via static DDL generation (`alembic upgrade head --sql`).
+  - [x] Automated GitHub Actions continuous integration workflow (`.github/workflows/ci.yml`) covering static migration checks, backend tests, all 5 benchmarks, and frontend quality gates.
+  - [x] Comprehensive test suite (247 backend tests, 14 frontend tests, 100% passing across all 5 offline benchmarks).
+
+- [x] **Milestone 9: Beta Release Readiness (Completed & Verified)**
+  - [x] **Gate 1 (Blocker Resolution):** Verified production API-key enforcement, strict HTTPS/SSRF defense, secret scrubbing, streaming request size limiting, and line-grounding gates. Zero critical or high blockers remaining.
+  - [x] **Gate 2 (Reproducible Setup):** Documented and verified tested setup commands for Windows and Linux/macOS, safe `.env.example` templating, Alembic static DDL generation, and comprehensive error troubleshooting diagnostics.
+  - [x] **Gate 3 (Continuous Integration):** Validated `.github/workflows/ci.yml` reproducibility, offline execution without production secrets, static Alembic DDL validation, all 5 language benchmarks, and frontend quality gates.
+  - [x] **Gate 4 (End-to-End Beta Acceptance Suite):** Implemented dedicated acceptance test modules (`test_beta_acceptance.py` and `api_client.test.ts`) covering multi-language PR review lifecycle, diff parsing, analyzer dispatch, line grounding, finding provenance, feedback persistence, and 5 negative/edge scenarios (empty diffs, invalid inputs, GitHub API errors, oversized payloads, production auth fail-closed).
+  - [x] **Gate 5 (Release and Operations Review):** Audited container security (non-root users `patchwise` and `nextjs`, ports 8000 and 3000, container health checks), CORS policy, production debug disabling (`docs_url=None`), and dependency vulnerability audit (`npm audit --omit=dev`: 0 vulnerabilities).
+  - [x] **Gate 6 (Final Verification):** Full test suites passing (253 backend tests in 1.15s, 20 frontend tests in 151ms), 0 TypeScript errors, 0 ESLint errors/warnings, clean Turbopack production build, 100/100 benchmark fixtures passing with 1.0000 F1 score and ~3ms mean latency, clean `git diff --check`. Ready for controlled beta release.
 

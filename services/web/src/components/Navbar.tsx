@@ -51,16 +51,16 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#262c36] bg-[#0d0f12]/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 border-b border-[#1e2430] bg-[#08090b]/95 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
         {/* Brand */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-white transition hover:opacity-90">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-600 font-mono text-sm font-bold text-white shadow-sm">
+          <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-white transition hover:opacity-95">
+            <div className="flex h-7 w-7 items-center justify-center rounded border border-amber-500/40 bg-amber-500/10 font-mono text-xs font-bold text-amber-400">
               PW
             </div>
-            <span className="text-base font-bold tracking-tight">Patchwise</span>
-            <span className="rounded border border-[#303642] bg-[#161920] px-1.5 py-0.5 text-[10px] font-medium text-[#8b949e]">
+            <span className="text-sm font-semibold tracking-tight text-[#f0f3f6]">Patchwise</span>
+            <span className="font-mono text-[10px] text-[#656e7b] border border-[#1e2430] px-1.5 py-0.5 rounded bg-[#0f1217]">
               v0.1.0
             </span>
           </Link>
@@ -78,13 +78,13 @@ export const Navbar: React.FC = () => {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                  className={`flex items-center gap-2 rounded px-2.5 py-1.5 text-xs font-medium transition ${
                     isActive
-                      ? 'bg-[#20252e] text-white shadow-sm'
-                      : 'text-[#8b949e] hover:bg-[#161920] hover:text-[#e6edf3]'
+                      ? 'bg-[#161a22] text-white border border-[#262e3d]'
+                      : 'text-[#949da8] hover:bg-[#0f1217] hover:text-[#f0f3f6]'
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
+                  <Icon className="h-3.5 w-3.5 text-[#949da8]" />
                   {item.label}
                 </Link>
               );
@@ -95,12 +95,12 @@ export const Navbar: React.FC = () => {
         {/* Backend Connectivity Status Pill */}
         <div className="flex items-center gap-3">
           <div
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+            className={`flex items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-[11px] transition ${
               connected === true
                 ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
                 : connected === false
-                ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
-                : 'border-[#262c36] bg-[#161920] text-[#8b949e]'
+                ? 'border-red-500/30 bg-red-500/10 text-red-400'
+                : 'border-[#1e2430] bg-[#0f1217] text-[#949da8]'
             }`}
             title={
               connected === true
@@ -113,14 +113,14 @@ export const Navbar: React.FC = () => {
             ) : connected === false ? (
               <AlertCircle className="h-3 w-3" />
             ) : (
-              <div className="h-2 w-2 animate-pulse rounded-full bg-[#8b949e]" />
+              <div className="h-2 w-2 animate-pulse rounded-full bg-[#949da8]" />
             )}
             <span>
               {connected === true
-                ? 'API Connected'
+                ? 'Engine Online'
                 : connected === false
-                ? 'API Disconnected'
-                : 'Connecting...'}
+                ? 'Engine Offline'
+                : 'Checking...'}
             </span>
           </div>
 
@@ -128,9 +128,9 @@ export const Navbar: React.FC = () => {
             href="https://github.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden sm:flex items-center gap-1 text-xs text-[#8b949e] hover:text-white transition"
+            className="hidden sm:flex items-center gap-1 text-xs text-[#949da8] hover:text-white transition"
           >
-            GitHub
+            <span>GitHub</span>
             <ExternalLink className="h-3 w-3" />
           </a>
         </div>
