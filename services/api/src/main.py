@@ -46,6 +46,17 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing Patchwise API service (%s)...", settings.ENVIRONMENT)
     logger.info("Configured LLM Provider: %s", settings.LLM_PROVIDER)
     logger.info("Registered Language Plugins: %d", len(plugin_registry.list_all()))
+
+    # Ensure database schema is created
+    try:
+        from .db.session import engine
+        from .db.models import Base
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("Database tables initialized successfully.")
+    except Exception as exc:
+        logger.warning("Database table auto-initialization skipped or deferred: %s", exc)
+
     yield
     logger.info("Shutting down Patchwise API service...")
 
@@ -189,6 +200,19 @@ app.include_router(health.router)
 app.include_router(health.router, prefix=settings.API_V1_PREFIX)
 app.include_router(reviews.router, prefix=settings.API_V1_PREFIX)
 app.include_router(benchmarks.router, prefix=settings.API_V1_PREFIX)
+
+
+@app.get("/", tags=["Root"])
+async def root_index():
+    """Service landing endpoint with operational links."""
+    return {
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "status": "online",
+        "documentation": "/docs",
+        "health": "/health",
+        "web_workstation": "http://localhost:3000",
+    }
 
 
 @app.get(f"{settings.API_V1_PREFIX}/plugins", tags=["Plugins"])
