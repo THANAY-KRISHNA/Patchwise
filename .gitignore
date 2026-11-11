@@ -31,10 +31,21 @@ venv.bak/
 
 # Environment Variables & Secrets (CRITICAL)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 *.pem
 *.key
+*.cert
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Proprietary Documents, PDFs & Private Notes
+*.pdf
+*.docx
+*.pptx
 
 # Node.js
 node_modules/
